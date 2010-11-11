@@ -123,6 +123,15 @@ size_t INode::getIdentifier() const {
 
 std::vector<size_t>::const_iterator INode::getIdentifiers() const { return _ids.begin(); }
 
+void INode::updateThetas(const arma::vec& deltas) {
+  for (size_t i = 0; i < _states.size(); i++)
+    _states[i]->angle += deltas(_ids[i]);
+  for (vector<TreeNode*>::iterator it = _kids.begin(); 
+      it != _kids.end();
+      ++it)
+    (*it)->updateThetas(deltas);
+}
+
 bool LNode::isLeafNode() const { return true; }
 
 vector<TreeNode*>::const_iterator LNode::getChildren() const { 
@@ -152,6 +161,8 @@ size_t LNode::getIdentifier() const { return id; }
 std::vector<size_t>::const_iterator LNode::getIdentifiers() const { 
   throw runtime_error("getIdentifiers on leaf node");
 }
+
+void LNode::updateThetas(const arma::vec& deltas) {}
 
 }
 }

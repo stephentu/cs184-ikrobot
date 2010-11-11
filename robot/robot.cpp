@@ -62,5 +62,42 @@ mat& LinkedTreeRobot::computeJacobian(mat& m) const {
   return m;
 }
 
+vec& LinkedTreeRobot::getEffectorPositions(vec& buffer) const {
+  buffer.set_size(3 * _numEffectors);
+  for (size_t i = 0; i < _numEffectors; i++) {
+    vec pos = _effectors[i]->getGlobalPosition(_rootPosition);
+    buffer(3 * i)     = pos[0];
+    buffer(3 * i + 1) = pos[1];
+    buffer(3 * i + 2) = pos[2];
+  }
+  return buffer;
+}
+
+vec LinkedTreeRobot::computeDeltaThetas(const vec& desiredPositions) const {
+
+  assert(_numEffectors * 3 == desiredPositions.n_elem);
+
+  // for now, use the pinv(J) * error method
+  mat J;
+  computeJacobian(J);
+  mat pInvJ = pinv(J); // magic. uses SVD
+  
+  vec s(3 * _numEffectors);
+  getEffectorPositions(s);
+
+  vec e = desiredPositions - s;
+
+  vec soln = pInvJ * e;
+  assert(soln.n_elem == _numJoints);
+  return soln;
+}
+
+void LinkedTreeRobot::updateThetas(const vec& deltas) {
+  assert(deltas.n_elem == _numJoints);
+  _root->updateThetas(deltas);
+}
+
+
+
 }
 }

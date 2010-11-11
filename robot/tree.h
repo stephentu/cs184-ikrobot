@@ -107,6 +107,9 @@ public:
   /** Which edge (joint) does THIS node rotate about? Undefined for root */
   inline size_t getEdgeIdentifier() const;
 
+  /** Update all angle by being given deltas */
+  virtual void updateThetas(const arma::vec&) = 0;
+
 protected:
   TreeNode* _parent;
   size_t idx;
@@ -148,6 +151,7 @@ public:
   std::vector<TreeNode*>& gatherLeaves(std::vector<TreeNode*>& );
   size_t getIdentifier() const;
   std::vector<size_t>::const_iterator getIdentifiers() const;
+  void updateThetas(const arma::vec&);
 private:
   std::vector<LinkState*> _states;
   std::vector<TreeNode*> _kids;
@@ -165,6 +169,7 @@ public:
   std::vector<TreeNode*>& gatherLeaves(std::vector<TreeNode*>& );
   size_t getIdentifier() const;
   std::vector<size_t>::const_iterator getIdentifiers() const;
+  void updateThetas(const arma::vec&);
 private:
   size_t id;
 };

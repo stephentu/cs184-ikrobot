@@ -16,7 +16,11 @@ public:
   inline size_t getNumJoints() const;
   inline size_t getNumEffectors() const;
 
+  arma::vec& getEffectorPositions(arma::vec&) const;
+
   arma::mat& computeJacobian(arma::mat&) const;
+  arma::vec computeDeltaThetas(const arma::vec&) const;
+  void updateThetas(const arma::vec&);
 private:
   const arma::vec3 _rootPosition;
   TreeNode* _root;

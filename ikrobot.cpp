@@ -47,5 +47,20 @@ int main(int argc, char **argv) {
 
   cout << J << endl;
 
+	vec desired(6);
+	desired.rows(0, 2) = makeVec3(-1, 0, 0);
+	desired.rows(3, 5) = makeVec3( 1, 0, 0);
+
+	cout << "desired: " << endl << desired << endl;
+
+	vec deltaThetas = robot.computeDeltaThetas(desired);
+	cout << deltaThetas << endl;
+
+	robot.updateThetas(deltaThetas);
+
+	vec newPos;
+	robot.getEffectorPositions(newPos);
+	cout << "new positions: " << endl << newPos << endl;
+
   return 0;
 }
