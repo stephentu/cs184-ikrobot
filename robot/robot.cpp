@@ -73,6 +73,14 @@ vec& LinkedTreeRobot::getEffectorPositions(vec& buffer) const {
   return buffer;
 }
 
+vector<vec3>& LinkedTreeRobot::getEffectorPositions(vector<vec3>& buf) const {
+  for (vector<TreeNode*>::const_iterator it = _effectors.begin(); 
+      it != _effectors.end();
+      ++it) 
+    buf.push_back((*it)->getGlobalPosition(_rootPosition));
+  return buf;
+}
+
 vec LinkedTreeRobot::computeDeltaThetas(const vec& desiredPositions) const {
 
   assert(_numEffectors * 3 == desiredPositions.n_elem);
@@ -97,7 +105,15 @@ void LinkedTreeRobot::updateThetas(const vec& deltas) {
   _root->updateThetas(deltas);
 }
 
+/** render links as lines for now */
+void LinkedTreeRobot::renderRobot() const {
+  _root->renderTree(_rootPosition);
+}
 
+void LinkedTreeRobot::solveIK(const vec& desired) {
+  vec deltaThetas = computeDeltaThetas(desired);
+  updateThetas(deltaThetas);
+}
 
 }
 }

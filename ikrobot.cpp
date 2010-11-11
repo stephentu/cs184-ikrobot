@@ -35,7 +35,17 @@ static inline vec3 makeVec3(double x1, double x2, double x3) {
   return v;
 }
 
-static vector<vec3> cubes;
+/** flattens a vector of vec3s into one large vec */
+static inline vec flattenVector(const vector<vec3>& buffer) {
+  vec v(3 * buffer.size());
+  for (size_t i = 0; i < buffer.size(); i++)
+    v.rows(3 * i, 3 * i + 2) = buffer[i];
+  return v;
+}
+
+
+static LinkedTreeRobot *robot;
+static vector<vec3> targets;
 
 static int width  = 600;
 static int height = 600;
@@ -107,10 +117,10 @@ static void reshape(int w, int h) {
   setViewport();
 }
 
-static void drawCube(double x, double y, double z) {
+static void drawSphere(const vec3& center, const double radius) {
   glPushMatrix();
-  glTranslated(x, y, z);
-  glutSolidCube(1.0);
+  glTranslated(center[0], center[1], center[2]);
+  glutSolidSphere(radius, 20, 20);
   glPopMatrix();
 }
 
@@ -156,18 +166,17 @@ static void display() {
 
   glMatrixMode(GL_MODELVIEW);
   if (displayMode == GL_SELECT) { // only render set points
-    for (size_t i = 0; i < cubes.size(); i++) {
+    for (size_t i = 0; i < targets.size(); i++) {
       glLoadName(i);
-      vec3 cube = cubes[i];
       glColor3f(1.0, 0.0, 0.0);
-      drawCube(cube[0], cube[1], cube[2]);
+      drawSphere(targets[i], 0.1);
     }
   } else { // render everything
-    for (size_t i = 0; i < cubes.size(); i++) {
-      vec3 cube = cubes[i];
+    for (size_t i = 0; i < targets.size(); i++) {
       glColor3f(1.0, 0.0, 0.0);
-      drawCube(cube[0], cube[1], cube[2]);
+      drawSphere(targets[i], 0.1);
     }
+    robot->renderRobot();
   }
 
   if (displayMode == GL_RENDER)
@@ -240,8 +249,8 @@ static int lastMouseButton, lastMouseState;
 #define LEFT_DOWN_CLICK (lastMouseButton == GLUT_LEFT_BUTTON && lastMouseState == GLUT_DOWN)
 #define LEFT_UP_CLICK (lastMouseButton == GLUT_LEFT_BUTTON && lastMouseState == GLUT_UP)
 
-static int activeCube = -1;
-static float activeCubeZBuf = 0.0;
+static int activeTarget = -1;
+static float activeTargetZBuf = 0.0;
 
 static void mouseClicked(int button, int state, int x, int y) {
   lastMouseButton = button;
@@ -258,10 +267,7 @@ static void mouseClicked(int button, int state, int x, int y) {
     int numHits = glRenderMode(GL_RENDER);
     cout << "numHits: " << numHits << endl;
 
-    if (numHits > 0) {
-
-      // find the item which has the smallest zmin
-
+    if (numHits > 0) { // find the item which has the smallest zmin
       assert(PICK_BUF[0] == 1);
       unsigned int zminMinSoFar = PICK_BUF[1];
       unsigned int minIdx = 0;
@@ -275,30 +281,23 @@ static void mouseClicked(int button, int state, int x, int y) {
       }
 
       unsigned int item = PICK_BUF[4 * minIdx + 3];
-      activeCube = item;
-      glReadPixels(mouseX, mouseY, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &activeCubeZBuf);
-
-      //cout << "picked item: " << item << endl;
-      //cout << "zmin: " << zmin << endl;
-      //cout << "zmax: " << zmax << endl;
-      //cout << "zbuf: " << activeCubeZBuf << endl;
-
-      //cout << getWorldSpacePos(mouseX, mouseY, activeCubeZBuf) << endl;
+      activeTarget = item;
+      glReadPixels(mouseX, mouseY, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &activeTargetZBuf);
     }
     redisplay();
   } else if (LEFT_UP_CLICK) { // reset the active cube
-    activeCube = -1;
+    activeTarget = -1;
   }
-
-
 }
 
 static void mouseDragged(int x, int y) {
-  if (LEFT_DOWN_CLICK && activeCube != -1) {
+  if (LEFT_DOWN_CLICK && activeTarget != -1) {
     //cout << "moueDragged: " << x << ", " << y << endl;
-    vec3 pos = getWorldSpacePos(x, y, activeCubeZBuf);
+    vec3 pos = getWorldSpacePos(x, y, activeTargetZBuf);
     //cout << pos << endl;
-    cubes[activeCube] = pos;
+    targets[activeTarget] = pos;
+
+    robot->solveIK(flattenVector(targets));
   }
 }
 
@@ -309,35 +308,34 @@ int main(int argc, char **argv) {
     makeVector<LinkState*>(2, new LinkState(1.0, makeVec3(0, 0, 1), 0.0, makeVec3(-1, -1, 0)), new LinkState(1.0, makeVec3(0, 0, 1), 0.0, makeVec3(1, -1, 0))), 
     makeVector<TreeNode*>(2, new LNode(), new LNode()));
 
-  LinkedTreeRobot robot(makeVec3(0, 0, 0), root);
+  robot = new LinkedTreeRobot(makeVec3(0, 0, 0), root);
 
-  cout << "numJoints: " << robot.getNumJoints() << ", " <<
-          "numEffectors: " << robot.getNumEffectors() << endl;
+  cout << "numJoints: " << robot->getNumJoints() << ", " <<
+          "numEffectors: " << robot->getNumEffectors() << endl;
 
-  mat J; 
-  robot.computeJacobian(J);
+  robot->getEffectorPositions(targets);
 
-  cout << J << endl;
+  //mat J; 
+  //robot.computeJacobian(J);
 
-  vec desired(6);
-  desired.rows(0, 2) = makeVec3(-1, 0, 0);
-  desired.rows(3, 5) = makeVec3( 1, 0, 0);
+  //cout << J << endl;
 
-  cout << "desired: " << endl << desired << endl;
+  //vec desired(6);
+  //desired.rows(0, 2) = makeVec3(-1, 0, 0);
+  //desired.rows(3, 5) = makeVec3( 1, 0, 0);
 
-  vec deltaThetas = robot.computeDeltaThetas(desired);
-  cout << deltaThetas << endl;
+  //cout << "desired: " << endl << desired << endl;
 
-  robot.updateThetas(deltaThetas);
+  //vec deltaThetas = robot.computeDeltaThetas(desired);
+  //cout << deltaThetas << endl;
 
-  vec newPos;
-  robot.getEffectorPositions(newPos);
-  cout << "new positions: " << endl << newPos << endl;
+  //robot.updateThetas(deltaThetas);
+
+  //vec newPos;
+  //robot.getEffectorPositions(newPos);
+  //cout << "new positions: " << endl << newPos << endl;
 
   // -----------------
-  
-  cubes.push_back(makeVec3(-2, -2, 0));
-  cubes.push_back(makeVec3(2, 2, 0));
 
   glutInit(&argc, argv);
 

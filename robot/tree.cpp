@@ -4,6 +4,10 @@
 #include <cassert>
 #include <stack>
 
+#include <GL/gl.h>
+#include <GL/glext.h>
+#include <GL/glut.h>
+
 using namespace std;
 using namespace arma;
 
@@ -132,6 +136,23 @@ void INode::updateThetas(const arma::vec& deltas) {
     (*it)->updateThetas(deltas);
 }
 
+void INode::renderTree(const arma::vec3& pos) const {
+  for (size_t i = 0; i < _states.size(); i++) {
+    // calculate end point of joint
+    vec3 endpoint = _states[i]->getEndpoint(pos);
+
+    // draw the link
+    glBegin(GL_LINES);
+    glColor3d(0.0, 1.0, 0.0);
+    glVertex3d(pos[0], pos[1], pos[2]);
+    glVertex3d(endpoint[0], endpoint[1], endpoint[2]);
+    glEnd();
+
+    // recurse into child
+    _kids[i]->renderTree(endpoint);
+  }
+}
+
 bool LNode::isLeafNode() const { return true; }
 
 vector<TreeNode*>::const_iterator LNode::getChildren() const { 
@@ -163,6 +184,7 @@ std::vector<size_t>::const_iterator LNode::getIdentifiers() const {
 }
 
 void LNode::updateThetas(const arma::vec& deltas) {}
+void LNode::renderTree(const arma::vec3& pos) const {}
 
 }
 }

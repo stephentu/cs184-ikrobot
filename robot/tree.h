@@ -110,6 +110,8 @@ public:
   /** Update all angle by being given deltas */
   virtual void updateThetas(const arma::vec&) = 0;
 
+  virtual void renderTree(const arma::vec3&) const = 0;
+
 protected:
   TreeNode* _parent;
   size_t idx;
@@ -152,6 +154,7 @@ public:
   size_t getIdentifier() const;
   std::vector<size_t>::const_iterator getIdentifiers() const;
   void updateThetas(const arma::vec&);
+  void renderTree(const arma::vec3&) const;
 private:
   std::vector<LinkState*> _states;
   std::vector<TreeNode*> _kids;
@@ -170,6 +173,7 @@ public:
   size_t getIdentifier() const;
   std::vector<size_t>::const_iterator getIdentifiers() const;
   void updateThetas(const arma::vec&);
+  void renderTree(const arma::vec3&) const;
 private:
   size_t id;
 };
