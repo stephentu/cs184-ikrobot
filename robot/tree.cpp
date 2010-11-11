@@ -80,19 +80,23 @@ size_t INode::numLeafNodes() const {
   return sumSoFar;
 }
 
-size_t INode::numINodes() const {
-  size_t sumSoFar = 1;
+size_t INode::numEdges() const {
+  size_t sumSoFar = _kids.size();
   for (vector<TreeNode*>::const_iterator it = _kids.begin(); 
       it != _kids.end();
       ++it)
-    sumSoFar += (*it)->numINodes();
+    sumSoFar += (*it)->numEdges();
   return sumSoFar;
 }
 
 pair<size_t, size_t> INode::assignNodeIndicies(const size_t iNodeOffset, const size_t lNodeOffset) {
-  // must do this in prefix order.
-  idx = iNodeOffset;
-  size_t numINodes = 1;
+  // assign ids to all the children first
+  for (size_t i = 0; i < _kids.size(); i++)
+    _ids.push_back(iNodeOffset + i);
+  assert( _ids.size() == _kids.size() );
+  
+  // now do this recursively with bookkeeping
+  size_t numINodes = _kids.size();
   size_t numLNodes = 0;
   for (vector<TreeNode*>::iterator it = _kids.begin(); 
       it != _kids.end();
@@ -113,6 +117,11 @@ vector<TreeNode*>& INode::gatherLeaves(vector<TreeNode*>& buffer) {
   return buffer;
 }
 
+size_t INode::getIdentifier() const {
+  throw runtime_error("getIdentifier on intermediate node");
+}
+
+std::vector<size_t>::const_iterator INode::getIdentifiers() const { return _ids.begin(); }
 
 bool LNode::isLeafNode() const { return true; }
 
@@ -126,16 +135,22 @@ vector<LinkState*>::const_iterator LNode::getLinkStates() const {
 
 size_t LNode::numLeafNodes() const { return 1; }
 
-size_t LNode::numINodes() const { return 0; }
+size_t LNode::numEdges() const { return 0; }
 
 pair<size_t, size_t> LNode::assignNodeIndicies(const size_t iNodeOffset, const size_t lNodeOffset) {
-  idx = lNodeOffset;
+  id = lNodeOffset;
   return pair<size_t, size_t>(0, 1);
 }
 
 vector<TreeNode*>& LNode::gatherLeaves(vector<TreeNode*>& buffer) {
   buffer.push_back(this);
   return buffer;
+}
+
+size_t LNode::getIdentifier() const { return id; }
+
+std::vector<size_t>::const_iterator LNode::getIdentifiers() const { 
+  throw runtime_error("getIdentifiers on leaf node");
 }
 
 }

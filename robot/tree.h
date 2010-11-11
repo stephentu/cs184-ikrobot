@@ -59,8 +59,11 @@ public:
   virtual std::vector<TreeNode*>::const_iterator getChildren() const = 0;
   virtual std::vector<LinkState*>::const_iterator getLinkStates() const = 0;
 
+  /** Number of leaf nodes at the bottom of tree */
   virtual size_t numLeafNodes() const = 0;
-  virtual size_t numINodes() const = 0;
+
+  /** Number of edges total in the tree (paths) */
+  virtual size_t numEdges() const = 0;
 
   /** assign node indicies in prefix order for inodes and leaf nodes
    * separately, using the inputs as the beginning offset. returns
@@ -89,19 +92,24 @@ public:
   /** The index (0-based) to look in the parent's child array for me */
   inline size_t getIndex() const;
 
-  /** An identifier assigned to me based on my position in the entire tree.
-   * DO NOT GET THIS CONFUSED WITH getIndex(). assignNodeIndicies MUST be
-   * called BEFORE this method is called for this ID to be meaningful */
-  inline size_t getIdentifier() const;
+  /** An identifier for LEAF NODES only. Intermediate nodes will get back a
+   * VECTOR of identifiers, one for each path */
+  virtual size_t getIdentifier() const = 0;
+
+  /** For intermediate nodes only. one identifier for each child (represents a
+   * joint identifier. each intermediate node has numChild separate joints) */
+  virtual std::vector<size_t>::const_iterator getIdentifiers() const = 0;
 
   /** What axis of rotation does THIS node rotate about (requires looking into
    * parent). is ill-defined for the root (since the root is fixed!) */
   inline arma::vec3 getRotationAxis() const; 
 
+  /** Which edge (joint) does THIS node rotate about? Undefined for root */
+  inline size_t getEdgeIdentifier() const;
+
 protected:
   TreeNode* _parent;
   size_t idx;
-  size_t id;
 };
 
 inline bool TreeNode::isRootNode() const { return _parent == NULL; }
@@ -117,13 +125,15 @@ inline size_t TreeNode::getIndex() const {
   return idx;
 }
 
-inline size_t TreeNode::getIdentifier() const { return id; }
-
 inline arma::vec3 TreeNode::getRotationAxis() const {
   assert(!isRootNode());
   return (*(getParent()->getLinkStates() + getIndex()))->axis;
 }
 
+inline size_t TreeNode::getEdgeIdentifier() const {
+  assert(!isRootNode());
+  return *(getParent()->getIdentifiers() + getIndex());
+}
 
 class INode : public TreeNode {
 public:
@@ -133,12 +143,15 @@ public:
   std::vector<TreeNode*>::const_iterator getChildren() const;
   std::vector<LinkState*>::const_iterator getLinkStates() const;
   size_t numLeafNodes() const;
-  size_t numINodes() const;
+  size_t numEdges() const;
   std::pair<size_t, size_t> assignNodeIndicies(const size_t, const size_t);
   std::vector<TreeNode*>& gatherLeaves(std::vector<TreeNode*>& );
+  size_t getIdentifier() const;
+  std::vector<size_t>::const_iterator getIdentifiers() const;
 private:
   std::vector<LinkState*> _states;
   std::vector<TreeNode*> _kids;
+  std::vector<size_t> _ids;
 };
 
 class LNode : public TreeNode {
@@ -147,9 +160,13 @@ public:
   std::vector<TreeNode*>::const_iterator getChildren() const;
   std::vector<LinkState*>::const_iterator getLinkStates() const;
   size_t numLeafNodes() const;
-  size_t numINodes() const;
+  size_t numEdges() const;
   std::pair<size_t, size_t> assignNodeIndicies(const size_t, const size_t);
   std::vector<TreeNode*>& gatherLeaves(std::vector<TreeNode*>& );
+  size_t getIdentifier() const;
+  std::vector<size_t>::const_iterator getIdentifiers() const;
+private:
+  size_t id;
 };
 
 }

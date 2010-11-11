@@ -17,7 +17,7 @@ LinkedTreeRobot::LinkedTreeRobot(const vec3& pos, TreeNode* root) : _rootPositio
   _root->assignNodeIndicies(0, 0); // assign indicies to each of the joints and effectors separately, index based from 0.
 
   // compute the number of joints & number of effectors
-  _numJoints    = _root->numINodes();
+  _numJoints    = _root->numEdges();
   _numEffectors = _root->numLeafNodes();
 
   _root->gatherLeaves(_effectors);
@@ -47,12 +47,12 @@ mat& LinkedTreeRobot::computeJacobian(mat& m) const {
     TreeNode *curNode = effector->getParent();
     while (curNode != NULL) {
       vec3 rotAxis = prevNode->getRotationAxis();
-      size_t currentNodeId = curNode->getIdentifier();
+      size_t jointId = prevNode->getEdgeIdentifier();
 
       vec3 jacobianEntry = cross(rotAxis, effectorPos - curNode->getGlobalPosition(_rootPosition)); 
-      m(3 * effectorId,     currentNodeId) = jacobianEntry[0];
-      m(3 * effectorId + 1, currentNodeId) = jacobianEntry[1];
-      m(3 * effectorId + 2, currentNodeId) = jacobianEntry[2];
+      m(3 * effectorId,     jointId) = jacobianEntry[0];
+      m(3 * effectorId + 1, jointId) = jacobianEntry[1];
+      m(3 * effectorId + 2, jointId) = jacobianEntry[2];
 
       prevNode = curNode;
       curNode = curNode->getParent();
