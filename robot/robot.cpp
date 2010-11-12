@@ -1,6 +1,7 @@
 #include "robot.h"
 
 #include <cassert>
+#include <stdexcept>
 
 using namespace arma;
 using namespace std;
@@ -85,19 +86,41 @@ vec LinkedTreeRobot::computeDeltaThetas(const vec& desiredPositions) const {
 
   assert(_numEffectors * 3 == desiredPositions.n_elem);
 
-  // for now, use the pinv(J) * error method
-  mat J;
-  computeJacobian(J);
-  mat pInvJ = pinv(J); // magic. uses SVD
-  
   vec s(3 * _numEffectors);
   getEffectorPositions(s);
 
   vec e = desiredPositions - s;
 
-  vec soln = pInvJ * e;
-  assert(soln.n_elem == _numJoints);
-  return soln;
+  mat J;
+  computeJacobian(J);
+
+  if (_method == PINV) { 
+    //cout << "PINV" << endl;
+    mat pInvJ = pinv(J); // magic. uses SVD
+    vec soln = pInvJ * e;
+    assert(soln.n_elem == _numJoints);
+    return soln;
+  } else if (_method == DLS) {
+    //cout << "DLS" << endl;
+    // delta theta = J^T(JJ^T + lambda^2I)^-1 * e
+    
+    mat JT = trans(J); 
+    mat JJT = J * JT;
+
+    mat I(J.n_rows, J.n_rows); 
+    I.eye();
+
+    double lambda = 0.1;
+
+    double lambda_squared = lambda * lambda;
+
+    vec soln = (JT * inv(JJT + lambda_squared * I)) * e;
+    assert(soln.n_elem == _numJoints);
+    return soln;
+
+  } else
+    throw runtime_error("invalid method");
+
 }
 
 void LinkedTreeRobot::updateThetas(const vec& deltas) {

@@ -2,11 +2,18 @@
 #define _ROBOT_H_
 
 #include <armadillo>
+#include <iostream>
 
 #include "tree.h"
 
 namespace edu_berkeley_cs184 {
 namespace robot {
+
+enum SolnType {
+  PINV,
+  DLS,
+  NUM_TYPES
+};
 
 class LinkedTreeRobot {
 public:
@@ -33,6 +40,10 @@ public:
   /** draw the robot in openGL */
   void renderRobot() const;
 
+  inline SolnType getMethod() const;
+
+  inline void setMethod(const SolnType);
+
 private:
   const arma::vec3 _rootPosition;
   TreeNode* _root;
@@ -43,6 +54,9 @@ private:
 
   // effectors, from traversing the root
   std::vector<TreeNode*> _effectors;
+
+  // method to use when solving for delta thetas
+  SolnType _method;
 };
 
 inline size_t LinkedTreeRobot::getNumJoints() const {
@@ -51,6 +65,12 @@ inline size_t LinkedTreeRobot::getNumJoints() const {
 
 inline size_t LinkedTreeRobot::getNumEffectors() const {
   return _numEffectors;
+}
+
+inline SolnType LinkedTreeRobot::getMethod() const { return _method; }
+inline void LinkedTreeRobot::setMethod(const SolnType _t) { 
+  std::cout << "Setting method to: " << _t << std::endl;
+  _method = _t; 
 }
 
 }

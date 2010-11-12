@@ -51,6 +51,8 @@ static unsigned int PICK_BUF[PICK_BUFFER_SIZE];
 
 static int mouseX, mouseY; // mouseX and mouseY **AFTER** glut adjustment in y
 
+static int solnType = 0;
+
 static void setViewport() {
   glViewport(0, 0, width, height);
 }
@@ -224,6 +226,8 @@ static void specialKeyboardHandler(int key, int x, int y) {
   }
 }
 
+static const double two_thirds = 2.0 / 3.0;
+
 static void keyboardHandler(unsigned char key, int x, int y) {
   switch (key) {
     case '+': // zoom in
@@ -232,8 +236,12 @@ static void keyboardHandler(unsigned char key, int x, int y) {
       break;
     case '-': // zoom out
       glMatrixMode(GL_MODELVIEW);
-      double two_thirds = 2.0 / 3.0;
+
       glScaled(two_thirds, two_thirds, two_thirds);
+      break;
+    case 's': // switch soln type
+      solnType = (solnType + 1) % ((int)NUM_TYPES);
+      robot->setMethod((SolnType)solnType);
       break;
   }
 }
@@ -300,7 +308,12 @@ int main(int argc, char **argv) {
 
   TreeNode* root = new INode(
     makeVector<LinkState*>(2, new LinkState(1.0, makeVec3(0, 0, 1), 0.0, makeVec3(-1, -1, 0)), new LinkState(1.0, makeVec3(0, 0, 1), 0.0, makeVec3(1, -1, 0))), 
-    makeVector<TreeNode*>(2, new LNode(), new LNode()));
+    makeVector<TreeNode*>(2, 
+      new INode(
+        makeVector<LinkState*>(1, new LinkState(1.0, makeVec3(0, 1, 0), 0.0, makeVec3(1, 0, 0))),
+        makeVector<TreeNode*>(1, new LNode())
+      ),
+      new LNode()));
 
   robot = new LinkedTreeRobot(makeVec3(0, 0, 0), root);
 
