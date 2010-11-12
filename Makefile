@@ -1,7 +1,7 @@
 CXXFLAGS = -Wall -O3
 #CXXFLAGS = -Wall -g
 
-OBJS = ikrobot.o robot.o tree.o
+OBJS = context.o ikrobot.o robot.o tree.o
 
 LIBS = -lGL -lglut -lGLU -larmadillo
 LD_FLAGS = -L/usr/sww/lib # find glut for inst machines
@@ -15,6 +15,9 @@ ikrobot: $(OBJS)
 
 clean:
 	rm -f *.o ikrobot
+
+context.o: robot/context.cpp robot/context.h
+	$(CXX) -c $(CXXFLAGS) -o $@ $<
 
 ikrobot.o: ikrobot.cpp
 	$(CXX) -c $(CXXFLAGS) -o $@ $<

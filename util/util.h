@@ -4,6 +4,7 @@
 #include <armadillo>
 #include <cmath>
 #include <limits>
+#include <cassert>
 
 namespace edu_berkeley_cs184 {
 namespace util {
@@ -52,6 +53,40 @@ inline arma::vec3 makeVec3(const double x1,
   v[2] = x3;
   return v;
 }
+
+inline arma::rowvec3 makeRowVec3(const double x1,
+                                 const double x2,
+                                 const double x3) {
+  arma::rowvec3 v;
+  v[0] = x1;
+  v[1] = x2;
+  v[2] = x3;
+  return v;
+}
+
+
+inline arma::mat44 rotation_matrix(const arma::vec3& z, // axis to rotate about - assumes is already normal
+                                   const double theta /* angle in radians */) {
+  arma::mat33 zcross;
+  zcross.row(0) = makeRowVec3(0, -z[2], z[1]);
+  zcross.row(1) = makeRowVec3(z[2], 0, -z[0]);
+  zcross.row(2) = makeRowVec3(-z[1], z[0], 0);
+
+  arma::mat33 I3;
+  I3.eye();
+
+  const double cos_th = cos(theta);
+  const double sin_th = sin(theta);
+
+  arma::mat33 R = (I3 * cos_th + zcross * sin_th + (1.0 - cos_th) * z * trans(z)); 
+
+  arma::mat44 R4;
+  R4.eye();
+  R4.submat(arma::span(0, 2), arma::span(0, 2)) = R;
+
+  return R4;
+}
+
 
 }
 }

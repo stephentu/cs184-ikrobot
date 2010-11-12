@@ -21,6 +21,12 @@ TreeNode::TreeNode() { _parent = NULL; }
 TreeNode::~TreeNode() {}
 
 vec3 TreeNode::getGlobalPosition(const vec3& rootPoint) {
+  Context ctx(rootPoint);
+  getContextForNode(ctx);
+  return ctx.getCurrentOrigin();
+}
+
+Context& TreeNode::getContextForNode(Context& ctx) {
   stack<TreeNode*> pathToRoot;
   stack<size_t> indexes;
   TreeNode* cur = getParent();
@@ -34,15 +40,17 @@ vec3 TreeNode::getGlobalPosition(const vec3& rootPoint) {
 
   assert(pathToRoot.size() == indexes.size());
 
-  vec3 curPos = rootPoint;
   while (!pathToRoot.empty()) {
     TreeNode *n = pathToRoot.top();
     size_t idx = indexes.top();
     pathToRoot.pop(); indexes.pop();
     vector<LinkState*>::const_iterator state_iter = n->getLinkStates() + idx;
-    curPos = (*state_iter)->getEndpoint(curPos);
+    LinkState* state = *state_iter;
+    vec3 curPos = state->getEndpoint(ctx);
+    ctx.pushContext(curPos, state->axis, state->angle);
   }
-  return curPos;
+
+  return ctx;
 }
 
 
@@ -139,10 +147,13 @@ void INode::updateThetas(const arma::vec& deltas) {
     (*it)->updateThetas(deltas);
 }
 
-void INode::renderTree(const arma::vec3& pos) const {
+void INode::renderTree(Context& ctx) const {
   for (size_t i = 0; i < _states.size(); i++) {
+    // start point
+    vec3 startpoint = ctx.getCurrentOrigin();
+
     // calculate end point of joint
-    vec3 endpoint = _states[i]->getEndpoint(pos);
+    vec3 endpoint = _states[i]->getEndpoint(ctx);
 
     // draw the link
     //glBegin(GL_LINES);
@@ -153,8 +164,8 @@ void INode::renderTree(const arma::vec3& pos) const {
 
     // calculate orthonormal basis for cylinder on joint
 
-    vec3 n = _states[i]->getRotatedDirection();
-    vec3 u = _states[i]->axis;
+    vec3 n = _states[i]->getRotatedDirection(ctx);
+    vec3 u = _states[i]->getRotationAxis(ctx);
     vec3 v = cross(n, u);
 
     //cout << "pos:" << endl << pos << endl;
@@ -208,7 +219,7 @@ void INode::renderTree(const arma::vec3& pos) const {
 
     glPushMatrix();
       glColor3d(0.0, 1.0, 0.0);
-      glTranslated(pos[0], pos[1], pos[2]);
+      glTranslated(startpoint[0], startpoint[1], startpoint[2]);
       glMultMatrixd(m);
       gluCylinder(quadric, 0.05, 0.05, _states[i]->length, 20, 20);
     glPopMatrix();
@@ -216,7 +227,9 @@ void INode::renderTree(const arma::vec3& pos) const {
     gluDeleteQuadric(quadric);
 
     // recurse into child
-    _kids[i]->renderTree(endpoint);
+    ctx.pushContext(endpoint, _states[i]->axis, _states[i]->angle);
+      _kids[i]->renderTree(ctx);
+    ctx.popContext();
   }
 }
 
@@ -251,7 +264,7 @@ std::vector<size_t>::const_iterator LNode::getIdentifiers() const {
 }
 
 void LNode::updateThetas(const arma::vec& deltas) {}
-void LNode::renderTree(const arma::vec3& pos) const {}
+void LNode::renderTree(Context& ctx) const {}
 
 }
 }

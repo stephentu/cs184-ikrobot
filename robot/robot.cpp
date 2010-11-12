@@ -3,6 +3,8 @@
 #include <cassert>
 #include <stdexcept>
 
+#include "context.h"
+
 using namespace arma;
 using namespace std;
 
@@ -42,21 +44,25 @@ mat& LinkedTreeRobot::computeJacobian(mat& m) const {
     TreeNode *effector = *it;
     size_t effectorId = effector->getIdentifier();
 
-    vec3 effectorPos = effector->getGlobalPosition(_rootPosition);
+    Context ctx(_rootPosition);
+    effector->getContextForNode(ctx);
+
+    vec3 effectorPos = ctx.getCurrentOrigin();
 
     TreeNode *prevNode = effector;
-    TreeNode *curNode = effector->getParent();
+    TreeNode *curNode  = effector->getParent();
     while (curNode != NULL) {
-      vec3 rotAxis = prevNode->getRotationAxis();
+      vec3 rotAxis = prevNode->getRotationAxis(ctx);
       size_t jointId = prevNode->getEdgeIdentifier();
+      ctx.popContext();
 
-      vec3 jacobianEntry = cross(rotAxis, effectorPos - curNode->getGlobalPosition(_rootPosition)); 
+      vec3 jacobianEntry = cross(rotAxis, effectorPos - ctx.getCurrentOrigin()); 
       m(3 * effectorId,     jointId) = jacobianEntry[0];
       m(3 * effectorId + 1, jointId) = jacobianEntry[1];
       m(3 * effectorId + 2, jointId) = jacobianEntry[2];
 
       prevNode = curNode;
-      curNode = curNode->getParent();
+      curNode  = curNode->getParent();
     }
   }
 
@@ -130,7 +136,8 @@ void LinkedTreeRobot::updateThetas(const vec& deltas) {
 
 /** render links as lines for now */
 void LinkedTreeRobot::renderRobot() const {
-  _root->renderTree(_rootPosition);
+  Context ctx(_rootPosition);
+  _root->renderTree(ctx);
 }
 
 void LinkedTreeRobot::solveIK(const vec& desired) {

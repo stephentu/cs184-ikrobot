@@ -306,14 +306,22 @@ static void mouseDragged(int x, int y) {
 
 int main(int argc, char **argv) {  
 
+  //TreeNode* root = new INode(
+  //  makeVector<LinkState*>(2, new LinkState(1.0, makeVec3(0, 0, 1), 0.0, makeVec3(-1, -1, 0)), new LinkState(1.0, makeVec3(0, 0, 1), 0.0, makeVec3(1, -1, 0))), 
+  //  makeVector<TreeNode*>(2, 
+  //    new INode(
+  //      makeVector<LinkState*>(1, new LinkState(1.0, makeVec3(0, 1, 0), 0.0, makeVec3(1, 0, 0))),
+  //      makeVector<TreeNode*>(1, new LNode())
+  //    ),
+  //    new LNode()));
+  
   TreeNode* root = new INode(
-    makeVector<LinkState*>(2, new LinkState(1.0, makeVec3(0, 0, 1), 0.0, makeVec3(-1, -1, 0)), new LinkState(1.0, makeVec3(0, 0, 1), 0.0, makeVec3(1, -1, 0))), 
-    makeVector<TreeNode*>(2, 
+    makeVector<LinkState*>(1, new LinkState(1.0, makeVec3(0, 0, 1), makeVec3(-1, 0, 0))),
+    makeVector<TreeNode*>(1, 
       new INode(
-        makeVector<LinkState*>(1, new LinkState(1.0, makeVec3(0, 1, 0), 0.0, makeVec3(1, 0, 0))),
-        makeVector<TreeNode*>(1, new LNode())
-      ),
-      new LNode()));
+        makeVector<LinkState*>(1, new LinkState(2.0, makeVec3(-1, 0, 0), makeVec3(0, -1, 0))),
+        makeVector<TreeNode*>(1, new LNode()))
+  ));
 
   robot = new LinkedTreeRobot(makeVec3(0, 0, 0), root);
 

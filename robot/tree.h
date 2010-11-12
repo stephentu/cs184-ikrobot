@@ -7,6 +7,7 @@
 #include <cassert>
 
 #include "../util/util.h"
+#include "context.h"
 
 namespace edu_berkeley_cs184 {
 namespace robot {
@@ -16,11 +17,12 @@ namespace robot {
  */
 class LinkState {
 public:
+  /** new link state with length _l, GLOBAL rotation axis _axis (w.r.t theta =
+   * 0 for all links), and GLOBAL theta = 0 direction (w.r.t all theta = 0) */
   LinkState(const double _l,
             const arma::vec3& _axis,
-            const double _t0,
             const arma::vec3& _baseline) :
-    length(_l), axis(_axis), angle(_t0), baselineDirection(_baseline) {
+    length(_l), axis(_axis), angle(0.0), baselineDirection(_baseline) {
 
     assert(_l > 0.0);
 
@@ -32,19 +34,28 @@ public:
     assert( edu_berkeley_cs184::util::double_equals(arma::dot(axis, baselineDirection), 0) );
   }
 
-  /** Given an input coordinate, compute the endpoint of this link given the
-   * jointLoc (the coordinate of the joint) */
-  inline arma::vec3 getEndpoint(const arma::vec3& jointLoc) const {
+  /** Given a context, compute the GLOBAL endpoint of this joint */
+  inline arma::vec3 getEndpoint(const Context& ctx) const {
     // step 1: rotate baselineDirection by angle degrees along axis vector (in
     // right hand rule sense)
-    arma::vec3 rotated = getRotatedDirection();
+    arma::vec3 rotated = getRotatedDirection(ctx);
 
     // step 2: endpoint = jointLoc + length * rotated
-    return jointLoc + length * rotated;
+    return ctx.getCurrentOrigin() + length * rotated;
   }
 
-  inline arma::vec3 getRotatedDirection() const {
-    return edu_berkeley_cs184::util::rotate_expmap(baselineDirection, axis, angle);
+  /** Given a context, compute the NORMALIZED direction for which this joint
+   * is facing, in GLOBAL space */
+  inline arma::vec3 getRotatedDirection(const Context& ctx) const {
+    return edu_berkeley_cs184::util::rotate_expmap(
+      ctx.getVectorInContext(baselineDirection), 
+      ctx.getVectorInContext(axis), 
+      angle);
+  }
+
+  /** Given a context, return the rotation axis in GLOBAL space */
+  inline arma::vec3 getRotationAxis(const Context& ctx) const {
+    return ctx.getVectorInContext(axis);
   }
 
   const double length; /* not sure what unit this is */
@@ -106,7 +117,7 @@ public:
 
   /** What axis of rotation does THIS node rotate about (requires looking into
    * parent). is ill-defined for the root (since the root is fixed!) */
-  inline arma::vec3 getRotationAxis() const; 
+  inline arma::vec3 getRotationAxis(const Context&) const; 
 
   /** Which edge (joint) does THIS node rotate about? Undefined for root */
   inline size_t getEdgeIdentifier() const;
@@ -114,7 +125,10 @@ public:
   /** Update all angle by being given deltas */
   virtual void updateThetas(const arma::vec&) = 0;
 
-  virtual void renderTree(const arma::vec3&) const = 0;
+  virtual void renderTree(Context&) const = 0;
+
+  /** builds a context for THIS node */
+  Context& getContextForNode(Context&);
 
 protected:
   TreeNode* _parent;
@@ -134,9 +148,9 @@ inline size_t TreeNode::getIndex() const {
   return idx;
 }
 
-inline arma::vec3 TreeNode::getRotationAxis() const {
+inline arma::vec3 TreeNode::getRotationAxis(const Context& ctx) const {
   assert(!isRootNode());
-  return (*(getParent()->getLinkStates() + getIndex()))->axis;
+  return (*(getParent()->getLinkStates() + getIndex()))->getRotationAxis(ctx);
 }
 
 inline size_t TreeNode::getEdgeIdentifier() const {
@@ -158,7 +172,7 @@ public:
   size_t getIdentifier() const;
   std::vector<size_t>::const_iterator getIdentifiers() const;
   void updateThetas(const arma::vec&);
-  void renderTree(const arma::vec3&) const;
+  void renderTree(Context&) const;
 private:
   std::vector<LinkState*> _states;
   std::vector<TreeNode*> _kids;
@@ -177,7 +191,7 @@ public:
   size_t getIdentifier() const;
   std::vector<size_t>::const_iterator getIdentifiers() const;
   void updateThetas(const arma::vec&);
-  void renderTree(const arma::vec3&) const;
+  void renderTree(Context&) const;
 private:
   size_t id;
 };
