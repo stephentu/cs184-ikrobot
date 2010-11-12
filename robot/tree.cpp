@@ -8,8 +8,11 @@
 #include <GL/glext.h>
 #include <GL/glut.h>
 
+#include "../util/util.h"
+
 using namespace std;
 using namespace arma;
+using namespace edu_berkeley_cs184::util;
 
 namespace edu_berkeley_cs184 {
 namespace robot {
@@ -142,11 +145,75 @@ void INode::renderTree(const arma::vec3& pos) const {
     vec3 endpoint = _states[i]->getEndpoint(pos);
 
     // draw the link
-    glBegin(GL_LINES);
-    glColor3d(0.0, 1.0, 0.0);
-    glVertex3d(pos[0], pos[1], pos[2]);
-    glVertex3d(endpoint[0], endpoint[1], endpoint[2]);
-    glEnd();
+    //glBegin(GL_LINES);
+    //glColor3d(0.0, 1.0, 0.0);
+    //glVertex3d(pos[0], pos[1], pos[2]);
+    //glVertex3d(endpoint[0], endpoint[1], endpoint[2]);
+    //glEnd();
+
+    // calculate orthonormal basis for cylinder on joint
+
+    vec3 n = _states[i]->getRotatedDirection();
+    vec3 u = _states[i]->axis;
+    vec3 v = cross(n, u);
+
+    //cout << "pos:" << endl << pos << endl;
+
+    //cout << "u:" << endl << u << endl;
+    //cout << "v:" << endl << v << endl;
+    //cout << "n:" << endl << n << endl;
+
+    vec3 x = makeVec3(1, 0, 0); 
+    vec3 y = makeVec3(0, 1, 0);
+    vec3 z = makeVec3(0, 0, 1);
+
+    double ux = dot(x, u);
+    double uy = dot(y, u);
+    double uz = dot(z, u);
+
+    double vx = dot(x, v);
+    double vy = dot(y, v);
+    double vz = dot(z, v);
+
+    double nx = dot(x, n);
+    double ny = dot(y, n);
+    double nz = dot(z, n);
+
+    // change of orthonormal basis from uvn -> xyz
+    GLdouble m[16];
+    m[0]  = ux;
+    m[1]  = uy;
+    m[2]  = uz;
+    m[3]  = 0;
+    
+    m[4]  = vx; 
+    m[5]  = vy;
+    m[6]  = vz;
+    m[7]  = 0;
+
+    m[8]  = nx;
+    m[9]  = ny;
+    m[10] = nz;
+    m[11] = 0;
+
+    m[12] = 0; m[13] = 0; m[14] = 0; m[15] = 1;
+
+    //cout << "--" << endl;
+    //for (int iii = 0; iii < 16; iii++) {
+    //  cout << m[iii] << endl;
+    //}
+    //cout << "--" << endl;
+
+    GLUquadricObj *quadric = gluNewQuadric();
+
+    glPushMatrix();
+      glColor3d(0.0, 1.0, 0.0);
+      glTranslated(pos[0], pos[1], pos[2]);
+      glMultMatrixd(m);
+      gluCylinder(quadric, 0.05, 0.05, _states[i]->length, 20, 20);
+    glPopMatrix();
+
+    gluDeleteQuadric(quadric);
 
     // recurse into child
     _kids[i]->renderTree(endpoint);

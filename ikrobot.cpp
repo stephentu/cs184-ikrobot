@@ -11,10 +11,12 @@
 
 #include "robot/robot.h"
 #include "robot/tree.h"
+#include "util/util.h"
 
 using namespace std;
 using namespace arma;
 using namespace edu_berkeley_cs184::robot;
+using namespace edu_berkeley_cs184::util;
 
 template <class T>
 static inline vector<T> makeVector(size_t count, ...) {
@@ -25,14 +27,6 @@ static inline vector<T> makeVector(size_t count, ...) {
     vec.push_back(va_arg(ap, T));
   va_end(ap);
   return vec;
-}
-
-static inline vec3 makeVec3(double x1, double x2, double x3) {
-  vec3 v;
-  v[0] = x1;
-  v[1] = x2;
-  v[2] = x3;
-  return v;
 }
 
 /** flattens a vector of vec3s into one large vec */
@@ -314,26 +308,6 @@ int main(int argc, char **argv) {
           "numEffectors: " << robot->getNumEffectors() << endl;
 
   robot->getEffectorPositions(targets);
-
-  //mat J; 
-  //robot.computeJacobian(J);
-
-  //cout << J << endl;
-
-  //vec desired(6);
-  //desired.rows(0, 2) = makeVec3(-1, 0, 0);
-  //desired.rows(3, 5) = makeVec3( 1, 0, 0);
-
-  //cout << "desired: " << endl << desired << endl;
-
-  //vec deltaThetas = robot.computeDeltaThetas(desired);
-  //cout << deltaThetas << endl;
-
-  //robot.updateThetas(deltaThetas);
-
-  //vec newPos;
-  //robot.getEffectorPositions(newPos);
-  //cout << "new positions: " << endl << newPos << endl;
 
   // -----------------
 

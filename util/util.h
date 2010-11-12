@@ -43,6 +43,15 @@ inline arma::vec3 rotate_expmap(const arma::vec3& v,
   return (v * cos_th) + ((cross(axis, v) * sin_th)) + axis * dot(axis, v) * (1.0 - cos_th);
 }
 
+inline arma::vec3 makeVec3(const double x1, 
+                           const double x2, 
+                           const double x3) {
+  arma::vec3 v;
+  v[0] = x1;
+  v[1] = x2;
+  v[2] = x3;
+  return v;
+}
 
 }
 }

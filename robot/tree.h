@@ -37,10 +37,14 @@ public:
   inline arma::vec3 getEndpoint(const arma::vec3& jointLoc) const {
     // step 1: rotate baselineDirection by angle degrees along axis vector (in
     // right hand rule sense)
-    arma::vec3 rotated = edu_berkeley_cs184::util::rotate_expmap(baselineDirection, axis, angle);
+    arma::vec3 rotated = getRotatedDirection();
 
     // step 2: endpoint = jointLoc + length * rotated
     return jointLoc + length * rotated;
+  }
+
+  inline arma::vec3 getRotatedDirection() const {
+    return edu_berkeley_cs184::util::rotate_expmap(baselineDirection, axis, angle);
   }
 
   const double length; /* not sure what unit this is */
