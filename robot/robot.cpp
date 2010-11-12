@@ -4,9 +4,11 @@
 #include <stdexcept>
 
 #include "context.h"
+#include "../util/util.h"
 
 using namespace arma;
 using namespace std;
+using namespace edu_berkeley_cs184::util;
 
 namespace edu_berkeley_cs184 {
 namespace robot {
@@ -88,6 +90,20 @@ vector<vec3>& LinkedTreeRobot::getEffectorPositions(vector<vec3>& buf) const {
   return buf;
 }
 
+static inline vec clamp(const vec& input, const double maxMag) {
+  vec v = input;
+  assert(v.n_elem % 3 == 0);
+  for (size_t i = 0; i < v.n_elem / 3; i++) {
+    vec3 cur = v.rows(3 * i, 3 * i + 2);
+    if (norm(cur, 2) > maxMag) {
+      normalize_vec3(cur);
+      cur = maxMag * cur;
+      v.rows(3 * i, 3 * i + 2) = cur;
+    }
+  }
+  return v;
+}
+
 vec LinkedTreeRobot::computeDeltaThetas(const vec& desiredPositions) const {
 
   assert(_numEffectors * 3 == desiredPositions.n_elem);
@@ -95,7 +111,7 @@ vec LinkedTreeRobot::computeDeltaThetas(const vec& desiredPositions) const {
   vec s(3 * _numEffectors);
   getEffectorPositions(s);
 
-  vec e = desiredPositions - s;
+  vec e = clamp(desiredPositions - s, 1.0);
 
   mat J;
   computeJacobian(J);
@@ -116,7 +132,7 @@ vec LinkedTreeRobot::computeDeltaThetas(const vec& desiredPositions) const {
     mat I(J.n_rows, J.n_rows); 
     I.eye();
 
-    double lambda = 0.1;
+    double lambda = 1.5;
 
     double lambda_squared = lambda * lambda;
 

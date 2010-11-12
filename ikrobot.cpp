@@ -320,8 +320,10 @@ int main(int argc, char **argv) {
     makeVector<TreeNode*>(1, 
       new INode(
         makeVector<LinkState*>(1, new LinkState(2.0, makeVec3(-1, 0, 0), makeVec3(0, -1, 0))),
-        makeVector<TreeNode*>(1, new LNode()))
-  ));
+        makeVector<TreeNode*>(1, 
+          new INode(
+            makeVector<LinkState*>(1, new LinkState(1.0, makeVec3(0, -1, 0), makeVec3(0, 0, 1))),
+            makeVector<TreeNode*>(1, new LNode()))))));
 
   robot = new LinkedTreeRobot(makeVec3(0, 0, 0), root);
 
