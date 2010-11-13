@@ -22,7 +22,7 @@ LinkedTreeRobot::LinkedTreeRobot(const vec3& pos, TreeNode* root) : _rootPositio
   _root->assignNodeIndicies(0, 0); // assign indicies to each of the joints and effectors separately, index based from 0.
 
   // compute the number of joints & number of effectors
-  _numJoints    = _root->numEdges();
+  _numJoints    = _root->numDOF();
   _numEffectors = _root->numLeafNodes();
 
   _root->gatherLeaves(_effectors);
@@ -34,6 +34,8 @@ LinkedTreeRobot::~LinkedTreeRobot() {
 }
 
 mat& LinkedTreeRobot::computeJacobian(mat& m) const {
+  cout << "--- computing jacobian ---" << endl;
+
   m.zeros(_numEffectors * 3, _numJoints);
 
   // for each effector, traverse up its link hierarchy and compute
@@ -46,27 +48,41 @@ mat& LinkedTreeRobot::computeJacobian(mat& m) const {
     TreeNode *effector = *it;
     size_t effectorId = effector->getIdentifier();
 
+    cout << "considering effector: " << effectorId << endl;
+
     Context ctx(_rootPosition);
     effector->getContextForNode(ctx);
 
     vec3 effectorPos = ctx.getCurrentOrigin();
 
+    cout << "effector currently located at: " << effectorPos << endl;
+
     TreeNode *prevNode = effector;
     TreeNode *curNode  = effector->getParent();
     while (curNode != NULL) {
-      vec3 rotAxis = prevNode->getRotationAxis(ctx);
-      size_t jointId = prevNode->getEdgeIdentifier();
+      LinkState* linkState = prevNode->getLinkState();
+      vector<size_t> jointIds = linkState->getJointIdentifiers();
+      assert(jointIds.size() == linkState->dof());
       ctx.popContext();
-
-      vec3 jacobianEntry = cross(rotAxis, effectorPos - ctx.getCurrentOrigin()); 
-      m(3 * effectorId,     jointId) = jacobianEntry[0];
-      m(3 * effectorId + 1, jointId) = jacobianEntry[1];
-      m(3 * effectorId + 2, jointId) = jacobianEntry[2];
-
+      vec3 direction = effectorPos - ctx.getCurrentOrigin();
+      cout << "dof: " << linkState->dof() << endl;
+      cout << "direction: " << direction << endl;
+      for (size_t jointIdx = 0; jointIdx < linkState->dof(); jointIdx++) {
+        size_t jointId = jointIds[jointIdx];
+        cout << "jointId: " << jointId << endl;
+        vec3 rotAxis = linkState->getRotationAxis(jointIdx, ctx);
+        cout << "rotAxis: " << endl << rotAxis << endl;
+        vec3 jacobianEntry = cross(rotAxis, direction); 
+        m(3 * effectorId,     jointId) = jacobianEntry[0];
+        m(3 * effectorId + 1, jointId) = jacobianEntry[1];
+        m(3 * effectorId + 2, jointId) = jacobianEntry[2];
+      }
       prevNode = curNode;
       curNode  = curNode->getParent();
     }
   }
+
+  cout << "---" << endl;
 
   return m;
 }

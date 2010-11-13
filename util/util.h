@@ -87,6 +87,39 @@ inline arma::mat44 rotation_matrix(const arma::vec3& z, // axis to rotate about 
   return R4;
 }
 
+/** Euler angles in radians. Treated as RxRyRz */
+inline arma::mat44 rotation_matrix(const double thx,
+                                   const double thy,
+                                   const double thz) {
+
+  const double cx = cos(thx);
+  const double cy = cos(thy);
+  const double cz = cos(thz);
+
+  const double sx = sin(thx);
+  const double sy = sin(thy);
+  const double sz = sin(thz);
+
+  arma::mat33 R;
+  R.row(0) = makeRowVec3(cy * cz, -cy * sz, sy);
+  R.row(1) = makeRowVec3(cz * sx * sy + cx * sz, cx * cz - sx * sy * sz, -cy * sx);
+  R.row(2) = makeRowVec3(-cx * cz * sy + sx * sz, cz * sx + cx * sy * sz, cx * cy);
+
+  arma::mat44 R4;
+  R4.eye();
+  R4.submat(arma::span(0, 2), arma::span(0, 2)) = R;
+
+  return R4;
+}
+
+inline arma::vec3 rotate_euler(const arma::vec3& v,
+                               const double thx,
+                               const double thy,
+                               const double thz) {
+  arma::mat44 R = rotation_matrix(thx, thy, thz);
+  return R.submat(arma::span(0, 2), arma::span(0, 2)) * v;
+}
+
 
 }
 }

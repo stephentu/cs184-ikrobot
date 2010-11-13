@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <cstdarg>
 #include <iostream>
+#include <cmath>
 
 #include <armadillo>
 
@@ -306,24 +307,39 @@ static void mouseDragged(int x, int y) {
 
 int main(int argc, char **argv) {  
 
+  // 3 link model
   //TreeNode* root = new INode(
-  //  makeVector<LinkState*>(2, new LinkState(1.0, makeVec3(0, 0, 1), 0.0, makeVec3(-1, -1, 0)), new LinkState(1.0, makeVec3(0, 0, 1), 0.0, makeVec3(1, -1, 0))), 
+  //  makeVector<LinkState*>(1, new LinkState(1.0, makeVec3(0, 0, 1), makeVec3(-1, 0, 0))),
+  //  makeVector<TreeNode*>(1, 
+  //    new INode(
+  //      makeVector<LinkState*>(1, new LinkState(2.0, makeVec3(-1, 0, 0), makeVec3(0, -1, 0))),
+  //      makeVector<TreeNode*>(1, 
+  //        new INode(
+  //          makeVector<LinkState*>(1, new LinkState(1.0, makeVec3(0, -1, 0), makeVec3(0, 0, 1))),
+  //          makeVector<TreeNode*>(1, new LNode()))))));
+
+  vec3 zhat = makeVec3(0, 0, 1);
+  
+  // spider
+  //TreeNode *root = new INode(
+  //  makeVector<LinkState*>(2, new LinkState(1, zhat, makeVec3(sqrt(3.0)/2.0, -0.5, 0)), new LinkState(1, zhat, makeVec3(-sqrt(3.0)/2.0, -0.5, 0))),
   //  makeVector<TreeNode*>(2, 
   //    new INode(
-  //      makeVector<LinkState*>(1, new LinkState(1.0, makeVec3(0, 1, 0), 0.0, makeVec3(1, 0, 0))),
-  //      makeVector<TreeNode*>(1, new LNode())
-  //    ),
-  //    new LNode()));
-  
-  TreeNode* root = new INode(
-    makeVector<LinkState*>(1, new LinkState(1.0, makeVec3(0, 0, 1), makeVec3(-1, 0, 0))),
-    makeVector<TreeNode*>(1, 
-      new INode(
-        makeVector<LinkState*>(1, new LinkState(2.0, makeVec3(-1, 0, 0), makeVec3(0, -1, 0))),
-        makeVector<TreeNode*>(1, 
-          new INode(
-            makeVector<LinkState*>(1, new LinkState(1.0, makeVec3(0, -1, 0), makeVec3(0, 0, 1))),
-            makeVector<TreeNode*>(1, new LNode()))))));
+  //      makeVector<LinkState*>(1, new LinkState(1, zhat, makeVec3(0.5, -sqrt(3.0)/2.0, 0))),
+  //      makeVector<TreeNode*>(1, new LNode())),
+  //    new INode(
+  //      makeVector<LinkState*>(1, new LinkState(1, zhat, makeVec3(-0.5, -sqrt(3.0)/2.0, 0))),
+  //      makeVector<TreeNode*>(1, new LNode()))));
+
+  // ball joint
+  TreeNode *root = new INode(
+    makeVector<LinkState*>(1, new BallAndSocketJoint(1.0, makeVec3(1, 0, 0))),
+    makeVector<TreeNode*>(1, new LNode()));
+
+  //TreeNode *root = new INode(
+  //  makeVector<LinkState*>(1, new RotationJoint(1.0, zhat, makeVec3(1, 0, 0))),
+  //  makeVector<TreeNode*>(1, new LNode()));
+
 
   robot = new LinkedTreeRobot(makeVec3(0, 0, 0), root);
 

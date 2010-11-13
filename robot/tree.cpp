@@ -46,8 +46,7 @@ Context& TreeNode::getContextForNode(Context& ctx) {
     pathToRoot.pop(); indexes.pop();
     vector<LinkState*>::const_iterator state_iter = n->getLinkStates() + idx;
     LinkState* state = *state_iter;
-    vec3 curPos = state->getEndpoint(ctx);
-    ctx.pushContext(curPos, state->axis, state->angle);
+    state->pushContext(ctx);
   }
 
   return ctx;
@@ -104,14 +103,27 @@ size_t INode::numEdges() const {
   return sumSoFar;
 }
 
+size_t INode::numDOF() const {
+  size_t sumSoFar = 0;
+  for (vector<LinkState*>::const_iterator it = _states.begin();
+      it != _states.end();
+      ++it)
+    sumSoFar += (*it)->dof();
+  for (vector<TreeNode*>::const_iterator it = _kids.begin(); 
+      it != _kids.end();
+      ++it)
+    sumSoFar += (*it)->numDOF();
+  return sumSoFar;
+}
+
 pair<size_t, size_t> INode::assignNodeIndicies(const size_t iNodeOffset, const size_t lNodeOffset) {
   // assign ids to all the children first
-  for (size_t i = 0; i < _kids.size(); i++)
-    _ids.push_back(iNodeOffset + i);
-  assert( _ids.size() == _kids.size() );
+  size_t curOffset = 0;
+  for (size_t i = 0; i < _states.size(); i++) 
+    curOffset += _states[i]->assignJointIndicies(iNodeOffset + curOffset);
   
   // now do this recursively with bookkeeping
-  size_t numINodes = _kids.size();
+  size_t numINodes = curOffset;
   size_t numLNodes = 0;
   for (vector<TreeNode*>::iterator it = _kids.begin(); 
       it != _kids.end();
@@ -136,11 +148,9 @@ size_t INode::getIdentifier() const {
   throw runtime_error("getIdentifier on intermediate node");
 }
 
-std::vector<size_t>::const_iterator INode::getIdentifiers() const { return _ids.begin(); }
-
 void INode::updateThetas(const arma::vec& deltas) {
   for (size_t i = 0; i < _states.size(); i++)
-    _states[i]->angle += deltas(_ids[i]);
+    _states[i]->updateThetas(deltas);
   for (vector<TreeNode*>::iterator it = _kids.begin(); 
       it != _kids.end();
       ++it)
@@ -163,10 +173,8 @@ void INode::renderTree(Context& ctx) const {
     //glEnd();
 
     // calculate orthonormal basis for cylinder on joint
-
-    vec3 n = _states[i]->getRotatedDirection(ctx);
-    vec3 u = _states[i]->getRotationAxis(ctx);
-    vec3 v = cross(n, u);
+    vec3 u, v, n;
+    _states[i]->getBasis(ctx, u, v, n);
 
     //cout << "pos:" << endl << pos << endl;
 
@@ -215,19 +223,27 @@ void INode::renderTree(Context& ctx) const {
     //}
     //cout << "--" << endl;
 
+    if (isRootNode()) {
+      glColor3d(0.0, 0.0, 0.8);
+      glPushMatrix();
+        glTranslated(startpoint[0], startpoint[1], startpoint[2]);
+        glutSolidSphere(0.1, 20, 20);
+      glPopMatrix();
+    }
+
     GLUquadricObj *quadric = gluNewQuadric();
 
     glPushMatrix();
       glColor3d(0.0, 1.0, 0.0);
       glTranslated(startpoint[0], startpoint[1], startpoint[2]);
       glMultMatrixd(m);
-      gluCylinder(quadric, 0.05, 0.05, _states[i]->length, 20, 20);
+      gluCylinder(quadric, 0.05, 0.05, _states[i]->getLength(), 20, 20);
     glPopMatrix();
 
     gluDeleteQuadric(quadric);
 
     // recurse into child
-    ctx.pushContext(endpoint, _states[i]->axis, _states[i]->angle);
+    _states[i]->pushContext(ctx);
       _kids[i]->renderTree(ctx);
     ctx.popContext();
   }
@@ -247,6 +263,8 @@ size_t LNode::numLeafNodes() const { return 1; }
 
 size_t LNode::numEdges() const { return 0; }
 
+size_t LNode::numDOF() const { return 0; }
+
 pair<size_t, size_t> LNode::assignNodeIndicies(const size_t iNodeOffset, const size_t lNodeOffset) {
   id = lNodeOffset;
   return pair<size_t, size_t>(0, 1);
@@ -258,10 +276,6 @@ vector<TreeNode*>& LNode::gatherLeaves(vector<TreeNode*>& buffer) {
 }
 
 size_t LNode::getIdentifier() const { return id; }
-
-std::vector<size_t>::const_iterator LNode::getIdentifiers() const { 
-  throw runtime_error("getIdentifiers on leaf node");
-}
 
 void LNode::updateThetas(const arma::vec& deltas) {}
 void LNode::renderTree(Context& ctx) const {}

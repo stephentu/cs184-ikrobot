@@ -8,61 +8,10 @@
 
 #include "../util/util.h"
 #include "context.h"
+#include "link.h"
 
 namespace edu_berkeley_cs184 {
 namespace robot {
-
-/**
- * Mutable link state
- */
-class LinkState {
-public:
-  /** new link state with length _l, GLOBAL rotation axis _axis (w.r.t theta =
-   * 0 for all links), and GLOBAL theta = 0 direction (w.r.t all theta = 0) */
-  LinkState(const double _l,
-            const arma::vec3& _axis,
-            const arma::vec3& _baseline) :
-    length(_l), axis(_axis), angle(0.0), baselineDirection(_baseline) {
-
-    assert(_l > 0.0);
-
-    // normalize axis and baseline just to be sure
-    edu_berkeley_cs184::util::normalize_vec3(axis); 
-    edu_berkeley_cs184::util::normalize_vec3(baselineDirection);
-
-    // now assert that the dot product of axis and baselineDirection is zero
-    assert( edu_berkeley_cs184::util::double_equals(arma::dot(axis, baselineDirection), 0) );
-  }
-
-  /** Given a context, compute the GLOBAL endpoint of this joint */
-  inline arma::vec3 getEndpoint(const Context& ctx) const {
-    // step 1: rotate baselineDirection by angle degrees along axis vector (in
-    // right hand rule sense)
-    arma::vec3 rotated = getRotatedDirection(ctx);
-
-    // step 2: endpoint = jointLoc + length * rotated
-    return ctx.getCurrentOrigin() + length * rotated;
-  }
-
-  /** Given a context, compute the NORMALIZED direction for which this joint
-   * is facing, in GLOBAL space */
-  inline arma::vec3 getRotatedDirection(const Context& ctx) const {
-    return edu_berkeley_cs184::util::rotate_expmap(
-      ctx.getVectorInContext(baselineDirection), 
-      ctx.getVectorInContext(axis), 
-      angle);
-  }
-
-  /** Given a context, return the rotation axis in GLOBAL space */
-  inline arma::vec3 getRotationAxis(const Context& ctx) const {
-    return ctx.getVectorInContext(axis);
-  }
-
-  const double length; /* not sure what unit this is */
-  arma::vec3 axis; /* NORMALIZED axis of rotation */ 
-  double angle; /* radians */
-  arma::vec3 baselineDirection; /* When angle = 0, what NORMALIZED dir is this link pointing in? */
-};
 
 class TreeNode {
 public:
@@ -80,6 +29,9 @@ public:
   /** Number of edges total in the tree (paths) */
   virtual size_t numEdges() const = 0;
 
+  /** Number of DOF in the tree (by adding up all the link states) */
+  virtual size_t numDOF() const = 0;
+
   /** assign node indicies in prefix order for inodes and leaf nodes
    * separately, using the inputs as the beginning offset. returns
    * the number of intermediate and leaf nodes assigned respectively */ 
@@ -87,7 +39,7 @@ public:
 
   /** Gather all the leaves of this tree into buffer, using push_back to
    * append */
-  virtual std::vector<TreeNode*>& gatherLeaves(std::vector<TreeNode*>& ) = 0;
+  virtual std::vector<TreeNode*>& gatherLeaves(std::vector<TreeNode*>&) = 0;
 
   /** Returns the global position of THIS node, given the input position for
    * the ROOT node. If this node IS the root node, then the same position will
@@ -107,20 +59,11 @@ public:
   /** The index (0-based) to look in the parent's child array for me */
   inline size_t getIndex() const;
 
-  /** An identifier for LEAF NODES only. Intermediate nodes will get back a
-   * VECTOR of identifiers, one for each path */
+  /** My link state (requires lookup into parent, illdefined for root) */
+  inline LinkState* getLinkState() const;
+
+  /** An identifier for LEAF NODES only. Errors out for intermediate nodes */
   virtual size_t getIdentifier() const = 0;
-
-  /** For intermediate nodes only. one identifier for each child (represents a
-   * joint identifier. each intermediate node has numChild separate joints) */
-  virtual std::vector<size_t>::const_iterator getIdentifiers() const = 0;
-
-  /** What axis of rotation does THIS node rotate about (requires looking into
-   * parent). is ill-defined for the root (since the root is fixed!) */
-  inline arma::vec3 getRotationAxis(const Context&) const; 
-
-  /** Which edge (joint) does THIS node rotate about? Undefined for root */
-  inline size_t getEdgeIdentifier() const;
 
   /** Update all angle by being given deltas */
   virtual void updateThetas(const arma::vec&) = 0;
@@ -148,14 +91,9 @@ inline size_t TreeNode::getIndex() const {
   return idx;
 }
 
-inline arma::vec3 TreeNode::getRotationAxis(const Context& ctx) const {
+inline LinkState* TreeNode::getLinkState() const {
   assert(!isRootNode());
-  return (*(getParent()->getLinkStates() + getIndex()))->getRotationAxis(ctx);
-}
-
-inline size_t TreeNode::getEdgeIdentifier() const {
-  assert(!isRootNode());
-  return *(getParent()->getIdentifiers() + getIndex());
+  return *(getParent()->getLinkStates() + getIndex());
 }
 
 class INode : public TreeNode {
@@ -167,16 +105,15 @@ public:
   std::vector<LinkState*>::const_iterator getLinkStates() const;
   size_t numLeafNodes() const;
   size_t numEdges() const;
+  size_t numDOF() const;
   std::pair<size_t, size_t> assignNodeIndicies(const size_t, const size_t);
-  std::vector<TreeNode*>& gatherLeaves(std::vector<TreeNode*>& );
+  std::vector<TreeNode*>& gatherLeaves(std::vector<TreeNode*>&);
   size_t getIdentifier() const;
-  std::vector<size_t>::const_iterator getIdentifiers() const;
   void updateThetas(const arma::vec&);
   void renderTree(Context&) const;
 private:
   std::vector<LinkState*> _states;
   std::vector<TreeNode*> _kids;
-  std::vector<size_t> _ids;
 };
 
 class LNode : public TreeNode {
@@ -186,10 +123,10 @@ public:
   std::vector<LinkState*>::const_iterator getLinkStates() const;
   size_t numLeafNodes() const;
   size_t numEdges() const;
+  size_t numDOF() const;
   std::pair<size_t, size_t> assignNodeIndicies(const size_t, const size_t);
-  std::vector<TreeNode*>& gatherLeaves(std::vector<TreeNode*>& );
+  std::vector<TreeNode*>& gatherLeaves(std::vector<TreeNode*>&);
   size_t getIdentifier() const;
-  std::vector<size_t>::const_iterator getIdentifiers() const;
   void updateThetas(const arma::vec&);
   void renderTree(Context&) const;
 private:

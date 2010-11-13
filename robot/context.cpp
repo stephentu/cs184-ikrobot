@@ -32,10 +32,19 @@ Context::Context(const vec3& pos,
 /** Push a new context of a new position, with a new rotation vector + the
  * amount of rotation (in radians) */
 void Context::pushContext(const vec3& newPosition,
-                     const vec3& newRotVector,
-                     const double radians) {
+                          const vec3& newRotVector,
+                          const double radians) {
   _positions.push(newPosition);
   _transforms.push(rotation_matrix(newRotVector, radians) * _transforms.top());
+}
+
+/** Push a new context of a new position + euler angles */
+void Context::pushContext(const vec3& newPosition,
+                          const double thx,
+                          const double thy,
+                          const double thz) {
+  _positions.push(newPosition);
+  _transforms.push(rotation_matrix(thx, thy, thz) * _transforms.top());
 }
 
 void Context::popContext() {
