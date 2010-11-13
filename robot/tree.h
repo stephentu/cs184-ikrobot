@@ -65,8 +65,9 @@ public:
   /** An identifier for LEAF NODES only. Errors out for intermediate nodes */
   virtual size_t getIdentifier() const = 0;
 
-  /** Update all angle by being given deltas */
-  virtual void updateThetas(const arma::vec&) = 0;
+  /** Update all angle by being given deltas. rotation axes given as a
+   * reference */
+  virtual void updateThetas(const arma::vec&, const arma::vec&) = 0;
 
   virtual void renderTree(Context&) const = 0;
 
@@ -109,7 +110,7 @@ public:
   std::pair<size_t, size_t> assignNodeIndicies(const size_t, const size_t);
   std::vector<TreeNode*>& gatherLeaves(std::vector<TreeNode*>&);
   size_t getIdentifier() const;
-  void updateThetas(const arma::vec&);
+  void updateThetas(const arma::vec&, const arma::vec&);
   void renderTree(Context&) const;
 private:
   std::vector<LinkState*> _states;
@@ -127,7 +128,7 @@ public:
   std::pair<size_t, size_t> assignNodeIndicies(const size_t, const size_t);
   std::vector<TreeNode*>& gatherLeaves(std::vector<TreeNode*>&);
   size_t getIdentifier() const;
-  void updateThetas(const arma::vec&);
+  void updateThetas(const arma::vec&, const arma::vec&);
   void renderTree(Context&) const;
 private:
   size_t id;

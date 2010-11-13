@@ -47,6 +47,11 @@ void Context::pushContext(const vec3& newPosition,
   _transforms.push(rotation_matrix(thx, thy, thz) * _transforms.top());
 }
 
+void Context::pushContext(const vec3& pos, const mat44& trfm) {
+  _positions.push(pos);
+  _transforms.push(trfm);
+}
+
 void Context::popContext() {
   _positions.pop();
   _transforms.pop();

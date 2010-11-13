@@ -27,9 +27,13 @@ public:
   /** Degrees of freedom */
   virtual size_t dof() const = 0;
 
-  /** For the i-th DOF, return the rotation axis given a context
-   * DOF must be a valid DOF (indexed from zero) */
-  virtual arma::vec3 getRotationAxis(const size_t, const Context&) const = 0;
+  /** For the i-th DOF, return the rotation axis given a context, desired
+   * position, and current effector position.
+   * DOF must be a valid DOF (indexed from zero). */
+  virtual arma::vec3 getRotationAxis(const size_t, 
+                                     const Context&, 
+                                     const arma::vec3&,
+                                     const arma::vec3&) const = 0;
 
   /** what NORMALIZED direction is the link pointing in, given a context and applying
    * this link's rotations?  */
@@ -45,8 +49,9 @@ public:
   /** push this joint's configuration onto the current context */
   virtual Context& pushContext(Context&) const = 0;
 
-  /** Update the angles based on the global update vector */
-  virtual void updateThetas(const arma::vec&) = 0;
+  /** Update the angles based on the global update vector. the rotation 
+   * vector used is given as a reference */
+  virtual void updateThetas(const arma::vec&, const arma::vec&) = 0;
 
   /** Get an orthonormal basis (u, v, n) for this frame */
   virtual void getBasis(const Context&, arma::vec3&, arma::vec3&, arma::vec3&) const = 0;
@@ -75,12 +80,15 @@ public:
   RotationJoint(const double, const arma::vec3&, const arma::vec3&);
   
   size_t dof() const;
-  arma::vec3 getRotationAxis(const size_t, const Context&) const; 
+  arma::vec3 getRotationAxis(const size_t, 
+                             const Context&, 
+                             const arma::vec3&,
+                             const arma::vec3&) const; 
   arma::vec3 getRotatedDirection(const Context&) const; 
   std::vector<size_t> getJointIdentifiers() const;
   size_t assignJointIndicies(const size_t);
   Context& pushContext(Context&) const;
-  void updateThetas(const arma::vec&);
+  void updateThetas(const arma::vec&, const arma::vec&);
   void getBasis(const Context&, arma::vec3&, arma::vec3&, arma::vec3&) const;
 
 private:
@@ -91,17 +99,20 @@ private:
   size_t jointId;
 };
 
-class BallAndSocketJoint : public LinkState {
+class EulerBallAndSocketJoint : public LinkState {
 public:
-  BallAndSocketJoint(const double, const arma::vec3&);
+  EulerBallAndSocketJoint(const double, const arma::vec3&);
                   
   size_t dof() const;
-  arma::vec3 getRotationAxis(const size_t, const Context&) const; 
+  arma::vec3 getRotationAxis(const size_t, 
+                             const Context&, 
+                             const arma::vec3&,
+                             const arma::vec3&) const; 
   arma::vec3 getRotatedDirection(const Context&) const; 
   std::vector<size_t> getJointIdentifiers() const;
   size_t assignJointIndicies(const size_t);
   Context& pushContext(Context&) const;
-  void updateThetas(const arma::vec&);
+  void updateThetas(const arma::vec&, const arma::vec&);
   void getBasis(const Context&, arma::vec3&, arma::vec3&, arma::vec3&) const;
 
 private:
@@ -113,6 +124,30 @@ private:
   double thetaz;
 
   std::vector<size_t> jointIds;
+
+};
+
+class AxisBallAndSocketJoint : public LinkState {
+public:
+  AxisBallAndSocketJoint(const double, const arma::vec3&);
+
+  size_t dof() const;
+  arma::vec3 getRotationAxis(const size_t, 
+                             const Context&, 
+                             const arma::vec3&,
+                             const arma::vec3&) const; 
+  arma::vec3 getRotatedDirection(const Context&) const; 
+  std::vector<size_t> getJointIdentifiers() const;
+  size_t assignJointIndicies(const size_t);
+  Context& pushContext(Context&) const;
+  void updateThetas(const arma::vec&, const arma::vec&);
+  void getBasis(const Context&, arma::vec3&, arma::vec3&, arma::vec3&) const;
+
+private:
+  arma::vec3 currentDirection; /** NORMALIZED */
+  arma::mat44 currentTransform; /** local frame transform matrix */
+
+  size_t jointId;
 
 };
 

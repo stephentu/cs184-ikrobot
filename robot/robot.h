@@ -29,9 +29,9 @@ public:
   /** Get effector positions as an stl vector of arma vec3s */
   std::vector<arma::vec3>& getEffectorPositions(std::vector<arma::vec3>&) const;
 
-  arma::mat& computeJacobian(arma::mat&) const;
-  arma::vec computeDeltaThetas(const arma::vec&) const;
-  void updateThetas(const arma::vec&);
+  arma::mat& computeJacobian(const arma::vec&, arma::mat&, arma::vec&) const;
+  arma::vec computeDeltaThetas(const arma::vec&, arma::vec&) const;
+  void updateThetas(const arma::vec&, const arma::vec&);
 
   /** Main IK method- given an input of desired positions, update the robot to
    * try to match this input */

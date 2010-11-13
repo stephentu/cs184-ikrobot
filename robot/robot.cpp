@@ -33,10 +33,11 @@ LinkedTreeRobot::~LinkedTreeRobot() {
   delete _root;
 }
 
-mat& LinkedTreeRobot::computeJacobian(mat& m) const {
+mat& LinkedTreeRobot::computeJacobian(const vec& desired, mat& m, vec& axes) const {
   cout << "--- computing jacobian ---" << endl;
 
   m.zeros(_numEffectors * 3, _numJoints);
+  axes.zeros(_numJoints * 3);
 
   // for each effector, traverse up its link hierarchy and compute
   // J(i,j) = (partial S_i / partial theta_j)
@@ -70,8 +71,9 @@ mat& LinkedTreeRobot::computeJacobian(mat& m) const {
       for (size_t jointIdx = 0; jointIdx < linkState->dof(); jointIdx++) {
         size_t jointId = jointIds[jointIdx];
         cout << "jointId: " << jointId << endl;
-        vec3 rotAxis = linkState->getRotationAxis(jointIdx, ctx);
+        vec3 rotAxis = linkState->getRotationAxis(jointIdx, ctx, desired.rows(3 * jointId, 3 * jointId + 2), effectorPos);
         cout << "rotAxis: " << endl << rotAxis << endl;
+        axes.rows(3 * jointId, 3 * jointId + 2) = rotAxis;
         vec3 jacobianEntry = cross(rotAxis, direction); 
         m(3 * effectorId,     jointId) = jacobianEntry[0];
         m(3 * effectorId + 1, jointId) = jacobianEntry[1];
@@ -120,7 +122,7 @@ static inline vec clamp(const vec& input, const double maxMag) {
   return v;
 }
 
-vec LinkedTreeRobot::computeDeltaThetas(const vec& desiredPositions) const {
+vec LinkedTreeRobot::computeDeltaThetas(const vec& desiredPositions, vec& axes) const {
 
   assert(_numEffectors * 3 == desiredPositions.n_elem);
 
@@ -130,7 +132,7 @@ vec LinkedTreeRobot::computeDeltaThetas(const vec& desiredPositions) const {
   vec e = clamp(desiredPositions - s, 1.0);
 
   mat J;
-  computeJacobian(J);
+  computeJacobian(desiredPositions, J, axes);
 
   if (_method == PINV) { 
     //cout << "PINV" << endl;
@@ -161,9 +163,10 @@ vec LinkedTreeRobot::computeDeltaThetas(const vec& desiredPositions) const {
 
 }
 
-void LinkedTreeRobot::updateThetas(const vec& deltas) {
+void LinkedTreeRobot::updateThetas(const vec& deltas, const vec& axes) {
   assert(deltas.n_elem == _numJoints);
-  _root->updateThetas(deltas);
+  assert(deltas.n_elem * 3 == axes.n_elem);
+  _root->updateThetas(deltas, axes);
 }
 
 /** render links as lines for now */
@@ -173,8 +176,9 @@ void LinkedTreeRobot::renderRobot() const {
 }
 
 void LinkedTreeRobot::solveIK(const vec& desired) {
-  vec deltaThetas = computeDeltaThetas(desired);
-  updateThetas(deltaThetas);
+  vec axes;
+  vec deltaThetas = computeDeltaThetas(desired, axes);
+  updateThetas(deltaThetas, axes);
 }
 
 }

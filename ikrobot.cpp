@@ -333,7 +333,7 @@ int main(int argc, char **argv) {
 
   // ball joint
   TreeNode *root = new INode(
-    makeVector<LinkState*>(1, new BallAndSocketJoint(1.0, makeVec3(1, 0, 0))),
+    makeVector<LinkState*>(1, new AxisBallAndSocketJoint(1.0, makeVec3(1, 0, 0))),
     makeVector<TreeNode*>(1, new LNode()));
 
   //TreeNode *root = new INode(

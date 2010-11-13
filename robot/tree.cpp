@@ -148,13 +148,13 @@ size_t INode::getIdentifier() const {
   throw runtime_error("getIdentifier on intermediate node");
 }
 
-void INode::updateThetas(const arma::vec& deltas) {
+void INode::updateThetas(const vec& deltas, const vec& axes) {
   for (size_t i = 0; i < _states.size(); i++)
-    _states[i]->updateThetas(deltas);
+    _states[i]->updateThetas(deltas, axes);
   for (vector<TreeNode*>::iterator it = _kids.begin(); 
       it != _kids.end();
       ++it)
-    (*it)->updateThetas(deltas);
+    (*it)->updateThetas(deltas, axes);
 }
 
 void INode::renderTree(Context& ctx) const {
@@ -277,7 +277,7 @@ vector<TreeNode*>& LNode::gatherLeaves(vector<TreeNode*>& buffer) {
 
 size_t LNode::getIdentifier() const { return id; }
 
-void LNode::updateThetas(const arma::vec& deltas) {}
+void LNode::updateThetas(const vec& deltas, const vec& axes) {}
 void LNode::renderTree(Context& ctx) const {}
 
 }

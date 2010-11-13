@@ -27,6 +27,8 @@ public:
                    const double,
                    const double);
 
+  void pushContext(const arma::vec3&, const arma::mat44&);
+
   void popContext();
 
   /** returns the current GLOBAL origin */
