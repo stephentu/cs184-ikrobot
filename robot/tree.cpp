@@ -166,15 +166,24 @@ void INode::renderTree(Context& ctx) const {
     vec3 endpoint = _states[i]->getEndpoint(ctx);
 
     // draw the link
-    //glBegin(GL_LINES);
-    //glColor3d(0.0, 1.0, 0.0);
-    //glVertex3d(pos[0], pos[1], pos[2]);
-    //glVertex3d(endpoint[0], endpoint[1], endpoint[2]);
-    //glEnd();
+    glBegin(GL_LINES);
+      glColor3d(1.0, 1.0, 1.0);
+      glVertex3d(startpoint[0], startpoint[1], startpoint[2]);
+      glVertex3d(endpoint[0], endpoint[1], endpoint[2]);
+    glEnd();
 
     // calculate orthonormal basis for cylinder on joint
     vec3 u, v, n;
     _states[i]->getBasis(ctx, u, v, n);
+
+    // check if basis is really orthonormal
+    assert(double_equals(dot(u, v), 0));
+    assert(double_equals(dot(u, n), 0));
+    assert(double_equals(dot(v, n), 0));
+
+    assert(double_equals(norm(u, 2), 1));
+    assert(double_equals(norm(v, 2), 1));
+    assert(double_equals(norm(n, 2), 1));
 
     //cout << "pos:" << endl << pos << endl;
 
@@ -217,19 +226,41 @@ void INode::renderTree(Context& ctx) const {
 
     m[12] = 0; m[13] = 0; m[14] = 0; m[15] = 1;
 
+    mat44 A; 
+    A << ux << vx << nx << 0 << endr 
+      << uy << vy << ny << 0 << endr
+      << uz << vz << nz << 0 << endr 
+      << 0  << 0  << 0  << 1 << endr;
+
+    //if (!double_equals(det(A), 1))
+    //  cout << "A is: " << endl << A << endl;
+
+    //cout << "det(A): " << det(A) << endl;
+    const double dA = det(A);
+    if (!double_equals(dA, 1)) {
+      cerr << "ERROR: det(A) = " << dA << endl; 
+      throw runtime_error("determinant not 1 for rotation matrix");
+    }
+
+
     //cout << "--" << endl;
     //for (int iii = 0; iii < 16; iii++) {
     //  cout << m[iii] << endl;
     //}
     //cout << "--" << endl;
 
-    if (isRootNode()) {
+    if (isRootNode())
       glColor3d(0.0, 0.0, 0.8);
-      glPushMatrix();
-        glTranslated(startpoint[0], startpoint[1], startpoint[2]);
+    else
+      glColor3d(0.0, 0.0, 1.0);
+
+    glPushMatrix();
+      glTranslated(startpoint[0], startpoint[1], startpoint[2]);
+      if (isRootNode())
         glutSolidSphere(0.1, 20, 20);
-      glPopMatrix();
-    }
+      else
+        glutSolidSphere(0.08, 20, 20);
+    glPopMatrix();
 
     GLUquadricObj *quadric = gluNewQuadric();
 
@@ -237,7 +268,7 @@ void INode::renderTree(Context& ctx) const {
       glColor3d(0.0, 1.0, 0.0);
       glTranslated(startpoint[0], startpoint[1], startpoint[2]);
       glMultMatrixd(m);
-      gluCylinder(quadric, 0.05, 0.05, _states[i]->getLength(), 20, 20);
+      gluCylinder(quadric, 0.05, 0.05, _states[i]->getLength(), 32, 32);
     glPopMatrix();
 
     gluDeleteQuadric(quadric);

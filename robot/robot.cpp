@@ -34,8 +34,9 @@ LinkedTreeRobot::~LinkedTreeRobot() {
 }
 
 mat& LinkedTreeRobot::computeJacobian(const vec& desired, mat& m, vec& axes) const {
-  cout << "--- computing jacobian ---" << endl;
+  //cout << "--- computing jacobian ---" << endl;
 
+  assert(desired.n_elem == 3 * _numEffectors);
   m.zeros(_numEffectors * 3, _numJoints);
   axes.zeros(_numJoints * 3);
 
@@ -49,14 +50,14 @@ mat& LinkedTreeRobot::computeJacobian(const vec& desired, mat& m, vec& axes) con
     TreeNode *effector = *it;
     size_t effectorId = effector->getIdentifier();
 
-    cout << "considering effector: " << effectorId << endl;
+    //cout << "considering effector: " << effectorId << endl;
 
     Context ctx(_rootPosition);
     effector->getContextForNode(ctx);
 
     vec3 effectorPos = ctx.getCurrentOrigin();
 
-    cout << "effector currently located at: " << effectorPos << endl;
+    //cout << "effector currently located at: " << effectorPos << endl;
 
     TreeNode *prevNode = effector;
     TreeNode *curNode  = effector->getParent();
@@ -66,13 +67,13 @@ mat& LinkedTreeRobot::computeJacobian(const vec& desired, mat& m, vec& axes) con
       assert(jointIds.size() == linkState->dof());
       ctx.popContext();
       vec3 direction = effectorPos - ctx.getCurrentOrigin();
-      cout << "dof: " << linkState->dof() << endl;
-      cout << "direction: " << direction << endl;
+      //cout << "dof: " << linkState->dof() << endl;
+      //cout << "direction: " << direction << endl;
       for (size_t jointIdx = 0; jointIdx < linkState->dof(); jointIdx++) {
         size_t jointId = jointIds[jointIdx];
-        cout << "jointId: " << jointId << endl;
-        vec3 rotAxis = linkState->getRotationAxis(jointIdx, ctx, desired.rows(3 * jointId, 3 * jointId + 2), effectorPos);
-        cout << "rotAxis: " << endl << rotAxis << endl;
+        //cout << "jointId: " << jointId << endl;
+        vec3 rotAxis = linkState->getRotationAxis(jointIdx, ctx, desired.rows(3 * effectorId, 3 * effectorId + 2), effectorPos);
+        //cout << "rotAxis: " << endl << rotAxis << endl;
         axes.rows(3 * jointId, 3 * jointId + 2) = rotAxis;
         vec3 jacobianEntry = cross(rotAxis, direction); 
         m(3 * effectorId,     jointId) = jacobianEntry[0];
@@ -84,7 +85,7 @@ mat& LinkedTreeRobot::computeJacobian(const vec& desired, mat& m, vec& axes) con
     }
   }
 
-  cout << "---" << endl;
+  //cout << "---" << endl;
 
   return m;
 }
@@ -129,7 +130,7 @@ vec LinkedTreeRobot::computeDeltaThetas(const vec& desiredPositions, vec& axes) 
   vec s(3 * _numEffectors);
   getEffectorPositions(s);
 
-  vec e = clamp(desiredPositions - s, 1.0);
+  vec e = clamp(desiredPositions - s, 0.5);
 
   mat J;
   computeJacobian(desiredPositions, J, axes);

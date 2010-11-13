@@ -37,6 +37,7 @@ vec3 RotationJoint::getRotationAxis(const size_t dof,
 }
 
 vec3 RotationJoint::getRotatedDirection(const Context& ctx) const {
+  //cout << "axis: " << ctx.getVectorInContext(axis) << endl;
   return rotate_expmap(
     ctx.getVectorInContext(baselineDirection), 
     ctx.getVectorInContext(axis), 
@@ -67,6 +68,7 @@ void RotationJoint::getBasis(const Context& ctx, vec3& u, vec3& v, vec3& n) cons
   n = getRotatedDirection(ctx);
   u = ctx.getVectorInContext(axis); 
   v = cross(n, u);
+  normalize_vec3(v);
 }
 
 EulerBallAndSocketJoint::EulerBallAndSocketJoint(const double _l, const vec3& _baseline) :
@@ -128,6 +130,7 @@ void EulerBallAndSocketJoint::getBasis(const Context& ctx, vec3& u, vec3& v, vec
 AxisBallAndSocketJoint::AxisBallAndSocketJoint(const double _l, const vec3& startingDir) 
   : LinkState(_l), currentDirection(startingDir) {
   normalize_vec3(currentDirection);
+  currentTransform.eye();
 }
 
 size_t AxisBallAndSocketJoint::dof() const { return 1; }
@@ -137,6 +140,10 @@ vec3 AxisBallAndSocketJoint::getRotationAxis(const size_t dof,
                                              const vec3& desiredPoint,
                                              const vec3& effectorPoint) const {
   assert(dof == 0);
+
+  if (vec3_equals(desiredPoint, effectorPoint))
+    return makeVec3(1, 0, 0);
+
   vec3 rotAxis = cross(effectorPoint - ctx.getCurrentOrigin(),
                        desiredPoint - ctx.getCurrentOrigin());
   return normalize_vec3(rotAxis);
@@ -172,8 +179,13 @@ void AxisBallAndSocketJoint::updateThetas(const vec& deltas, const vec& axes) {
 
 void AxisBallAndSocketJoint::getBasis(const Context& ctx, vec3& u, vec3& v, vec3& n) const {
   n = ctx.getVectorInContext(currentDirection);
-  u = cross(makeVec3(0, 1, 0), n); // TODO: this might be degenerate sometimes
+  if (vec3_equals(makeVec3(0, 1, 0), n) || vec3_equals(makeVec3(0, -1, 0), n))
+    u = cross(makeVec3(1, 0, 0), n);
+  else
+    u = cross(makeVec3(0, 1, 0), n);
   v = cross(n, u);
+  normalize_vec3(u);
+  normalize_vec3(v);
 }
 
 }

@@ -21,8 +21,15 @@ inline arma::vec3& normalize_vec3(arma::vec3& v) {
 }
 
 inline bool double_equals(const double x1, const double x2) {
-  return fabs(x1 - x2) < 100.0 * std::numeric_limits<double>::epsilon();
+  return fabs(x1 - x2) < 1000.0 * std::numeric_limits<double>::epsilon();
 }
+
+inline bool vec3_equals(const arma::vec3& a, const arma::vec3& b) {
+  return double_equals(a[0], b[0]) &&
+         double_equals(a[1], b[1]) &&
+         double_equals(a[2], b[2]);
+}
+
 
 /**
  * axis must be normalized. theta must be in radians

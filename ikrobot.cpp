@@ -332,14 +332,63 @@ int main(int argc, char **argv) {
   //      makeVector<TreeNode*>(1, new LNode()))));
 
   // ball joint
-  TreeNode *root = new INode(
-    makeVector<LinkState*>(1, new AxisBallAndSocketJoint(1.0, makeVec3(1, 0, 0))),
-    makeVector<TreeNode*>(1, new LNode()));
+  //TreeNode *root = new INode(
+  //  makeVector<LinkState*>(1, new AxisBallAndSocketJoint(1.0, makeVec3(0, 1, 0))),
+  //  makeVector<TreeNode*>(1, 
+  //    //new INode(
+  //    //  makeVector<LinkState*>(1, new RotationJoint(1.0, zhat, makeVec3(0, 1, 0))),
+  //    //  makeVector<TreeNode*>(1, new LNode())
+  //    //)
+  //    new LNode()
+  //  )
+  //);
 
   //TreeNode *root = new INode(
   //  makeVector<LinkState*>(1, new RotationJoint(1.0, zhat, makeVec3(1, 0, 0))),
-  //  makeVector<TreeNode*>(1, new LNode()));
+  //  makeVector<TreeNode*>(1, 
+  //    new INode( 
+  //      makeVector<LinkState*>(1, new RotationJoint(1.0, zhat, makeVec3(1, 0, 0))),
+  //      makeVector<TreeNode*>(1, new LNode())
+  //    
+  //    )));
 
+  // humanoid
+
+  TreeNode *root = new INode(
+    makeVector<LinkState*>(4, 
+      new AxisBallAndSocketJoint(1.0, makeVec3(1, 0, 0)),
+      new AxisBallAndSocketJoint(0.5, makeVec3(0, 1, 0)),
+      new AxisBallAndSocketJoint(1.0, makeVec3(-1, 0, 0)),
+      new AxisBallAndSocketJoint(2.0, makeVec3(0, -1, 0))
+    ),
+    makeVector<TreeNode*>(4,
+      new INode(
+        makeVector<LinkState*>(1, new RotationJoint(0.8, zhat, makeVec3(0, -1, 0))),
+        makeVector<TreeNode*>(1, new LNode())
+      ),
+      new LNode(),
+      new INode(
+        makeVector<LinkState*>(1, new RotationJoint(0.8, zhat, makeVec3(0, -1, 0))),
+        makeVector<TreeNode*>(1, new LNode())
+      ),
+      new INode(
+        makeVector<LinkState*>(2, 
+          new AxisBallAndSocketJoint(1.2, makeVec3(1, 0, 0)),
+          new AxisBallAndSocketJoint(1.2, makeVec3(-1, 0, 0))
+        ),
+        makeVector<TreeNode*>(2, 
+          new INode(
+            makeVector<LinkState*>(1, new RotationJoint(0.8, zhat, makeVec3(0, -1, 0))),
+            makeVector<TreeNode*>(1, new LNode())
+          ),
+          new INode(
+            makeVector<LinkState*>(1, new RotationJoint(0.8, zhat, makeVec3(0, -1, 0))),
+            makeVector<TreeNode*>(1, new LNode())
+          )
+        )
+      )
+    )
+  );
 
   robot = new LinkedTreeRobot(makeVec3(0, 0, 0), root);
 
