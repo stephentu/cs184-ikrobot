@@ -32,14 +32,28 @@ public:
   /** Number of DOF in the tree (by adding up all the link states) */
   virtual size_t numDOF() const = 0;
 
-  /** assign node indicies in prefix order for inodes and leaf nodes
-   * separately, using the inputs as the beginning offset. returns
-   * the number of intermediate and leaf nodes assigned respectively */ 
-  virtual std::pair<size_t, size_t> assignNodeIndicies(const size_t, const size_t) = 0;
+  /** Assign indicies in prefix order.
+   * 1st param- intermediate node offset
+   * 2nd param- joint offset
+   * 3rd param- leaf node offset
+   * 4th param- num intermediate nodes set
+   * 5th param- num joint nodes set
+   * 6th param- num leaf nodes set
+   */ 
+  virtual void assignNodeIndicies(const size_t, 
+                                  const size_t,
+                                  const size_t,
+                                  size_t&,
+                                  size_t&,
+                                  size_t&) = 0;
 
   /** Gather all the leaves of this tree into buffer, using push_back to
    * append */
   virtual std::vector<TreeNode*>& gatherLeaves(std::vector<TreeNode*>&) = 0;
+
+  /** Gather all inner nodes of this tree (including this node) into buffer,
+   * using push_back to insert */
+  virtual std::vector<TreeNode*>& gatherInnerNodes(std::vector<TreeNode*>&) = 0;
 
   /** Returns the global position of THIS node, given the input position for
    * the ROOT node. If this node IS the root node, then the same position will
@@ -62,8 +76,9 @@ public:
   /** My link state (requires lookup into parent, illdefined for root) */
   inline LinkState* getLinkState() const;
 
-  /** An identifier for LEAF NODES only. Errors out for intermediate nodes */
-  virtual size_t getIdentifier() const = 0;
+  /** An identifier for every node. leaf nodes and inner nodes have their own
+   * set of identifiers */
+  inline size_t getIdentifier() const;
 
   /** Update all angle by being given deltas. rotation axes given as a
    * reference */
@@ -77,6 +92,7 @@ public:
 protected:
   TreeNode* _parent;
   size_t idx;
+  size_t identity;
 };
 
 inline bool TreeNode::isRootNode() const { return _parent == NULL; }
@@ -97,6 +113,8 @@ inline LinkState* TreeNode::getLinkState() const {
   return *(getParent()->getLinkStates() + getIndex());
 }
 
+inline size_t TreeNode::getIdentifier() const { return identity; }
+
 class INode : public TreeNode {
 public:
   INode(const std::vector<LinkState*>&, const std::vector<TreeNode*>&);
@@ -107,9 +125,14 @@ public:
   size_t numLeafNodes() const;
   size_t numEdges() const;
   size_t numDOF() const;
-  std::pair<size_t, size_t> assignNodeIndicies(const size_t, const size_t);
+  void assignNodeIndicies(const size_t, 
+                          const size_t,
+                          const size_t,
+                          size_t&,
+                          size_t&,
+                          size_t&);
   std::vector<TreeNode*>& gatherLeaves(std::vector<TreeNode*>&);
-  size_t getIdentifier() const;
+  std::vector<TreeNode*>& gatherInnerNodes(std::vector<TreeNode*>&);
   void updateThetas(const arma::vec&, const arma::vec&);
   void renderTree(Context&) const;
 private:
@@ -125,13 +148,16 @@ public:
   size_t numLeafNodes() const;
   size_t numEdges() const;
   size_t numDOF() const;
-  std::pair<size_t, size_t> assignNodeIndicies(const size_t, const size_t);
+  void assignNodeIndicies(const size_t, 
+                          const size_t,
+                          const size_t,
+                          size_t&,
+                          size_t&,
+                          size_t&);
   std::vector<TreeNode*>& gatherLeaves(std::vector<TreeNode*>&);
-  size_t getIdentifier() const;
+  std::vector<TreeNode*>& gatherInnerNodes(std::vector<TreeNode*>&);
   void updateThetas(const arma::vec&, const arma::vec&);
   void renderTree(Context&) const;
-private:
-  size_t id;
 };
 
 }

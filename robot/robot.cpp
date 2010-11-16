@@ -19,7 +19,12 @@ namespace robot {
 LinkedTreeRobot::LinkedTreeRobot(const vec3& pos, TreeNode* root) : _rootPosition(pos), _root(root) {
   assert(_root != NULL && !root->isLeafNode());
 
-  _root->assignNodeIndicies(0, 0); // assign indicies to each of the joints and effectors separately, index based from 0.
+  size_t nInnerNodes, nJoints, nLeaves;
+  _root->assignNodeIndicies(0, 0, 0, nInnerNodes, nJoints, nLeaves); 
+
+  cout << "nInnerNodes: " << nInnerNodes << endl
+       << "nJoints: " << nJoints << endl
+       << "nLeaves: " << nLeaves << endl;
 
   // compute the number of joints & number of effectors
   _numJoints    = _root->numDOF();
@@ -27,6 +32,12 @@ LinkedTreeRobot::LinkedTreeRobot(const vec3& pos, TreeNode* root) : _rootPositio
 
   _root->gatherLeaves(_effectors);
   assert(_effectors.size() == _numEffectors);
+
+  _root->gatherInnerNodes(_innerNodes);
+
+  assert(nJoints == _numJoints);
+  assert(nLeaves == _numEffectors);
+  assert(nInnerNodes == _innerNodes.size());
 }
 
 LinkedTreeRobot::~LinkedTreeRobot() {
@@ -102,10 +113,24 @@ vec& LinkedTreeRobot::getEffectorPositions(vec& buffer) const {
 }
 
 vector<vec3>& LinkedTreeRobot::getEffectorPositions(vector<vec3>& buf) const {
+  buf.resize(_effectors.size());
   for (vector<TreeNode*>::const_iterator it = _effectors.begin(); 
       it != _effectors.end();
-      ++it) 
-    buf.push_back((*it)->getGlobalPosition(_rootPosition));
+      ++it) {
+    size_t idx = (*it)->getIdentifier();
+    buf[idx] = (*it)->getGlobalPosition(_rootPosition);
+  }
+  return buf;
+}
+
+vector<vec3>& LinkedTreeRobot::getInnerNodePositions(vector<vec3>& buf) const {
+  buf.resize(_innerNodes.size());
+  for (vector<TreeNode*>::const_iterator it = _innerNodes.begin(); 
+      it != _innerNodes.end();
+      ++it) {
+    size_t idx = (*it)->getIdentifier();
+    buf[idx] = (*it)->getGlobalPosition(_rootPosition);
+  }
   return buf;
 }
 

@@ -29,6 +29,9 @@ public:
   /** Get effector positions as an stl vector of arma vec3s */
   std::vector<arma::vec3>& getEffectorPositions(std::vector<arma::vec3>&) const;
 
+  /** Get each of the inner node positions as one large vector */
+  std::vector<arma::vec3>& getInnerNodePositions(std::vector<arma::vec3>&) const;
+
   arma::mat& computeJacobian(const arma::vec&, arma::mat&, arma::vec&) const;
   arma::vec computeDeltaThetas(const arma::vec&, arma::vec&) const;
   void updateThetas(const arma::vec&, const arma::vec&);
@@ -54,6 +57,10 @@ private:
 
   // effectors, from traversing the root
   std::vector<TreeNode*> _effectors;
+
+  // inner nodes, from traversing the root. this + effectors gives us the
+  // entire tree from root
+  std::vector<TreeNode*> _innerNodes;
 
   // method to use when solving for delta thetas
   SolnType _method;

@@ -116,24 +116,42 @@ size_t INode::numDOF() const {
   return sumSoFar;
 }
 
-pair<size_t, size_t> INode::assignNodeIndicies(const size_t iNodeOffset, const size_t lNodeOffset) {
-  // assign ids to all the children first
-  size_t curOffset = 0;
+void INode::assignNodeIndicies(const size_t innerNodeOffset, 
+                               const size_t jointNodeOffset,
+                               const size_t leafNodeOffset,
+                               size_t& numInnerNodes,
+                               size_t& numJointNodes,
+                               size_t& numLeafNodes) {
+  numLeafNodes = 0;
+
+  // take an id
+  numInnerNodes = 1;
+  identity = innerNodeOffset;
+
+  // assign ids to all the joints first
+  numJointNodes = 0;
   for (size_t i = 0; i < _states.size(); i++) 
-    curOffset += _states[i]->assignJointIndicies(iNodeOffset + curOffset);
+    numJointNodes += _states[i]->assignJointIndicies(jointNodeOffset + numJointNodes);
   
-  // now do this recursively with bookkeeping
-  size_t numINodes = curOffset;
-  size_t numLNodes = 0;
   for (vector<TreeNode*>::iterator it = _kids.begin(); 
       it != _kids.end();
       ++it) {
-    pair<size_t, size_t> thisNode = (*it)->assignNodeIndicies(iNodeOffset + numINodes, 
-                                                              lNodeOffset + numLNodes);
-    numINodes += thisNode.first;
-    numLNodes += thisNode.second;
+
+    size_t childNumInnerNodes;
+    size_t childNumJointNodes;
+    size_t childNumLeafNodes;
+
+    (*it)->assignNodeIndicies(innerNodeOffset + numInnerNodes, 
+                              jointNodeOffset + numJointNodes, 
+                              leafNodeOffset + numLeafNodes, 
+                              childNumInnerNodes,
+                              childNumJointNodes,
+                              childNumLeafNodes);
+
+    numInnerNodes += childNumInnerNodes;
+    numJointNodes += childNumJointNodes;
+    numLeafNodes  += childNumLeafNodes;
   }
-  return pair<size_t, size_t>(numINodes, numLNodes);
 }
 
 vector<TreeNode*>& INode::gatherLeaves(vector<TreeNode*>& buffer) {
@@ -144,8 +162,13 @@ vector<TreeNode*>& INode::gatherLeaves(vector<TreeNode*>& buffer) {
   return buffer;
 }
 
-size_t INode::getIdentifier() const {
-  throw runtime_error("getIdentifier on intermediate node");
+vector<TreeNode*>& INode::gatherInnerNodes(vector<TreeNode*>& buffer) {
+  buffer.push_back(this);
+  for (vector<TreeNode*>::iterator it = _kids.begin(); 
+      it != _kids.end();
+      ++it)
+    (*it)->gatherInnerNodes(buffer);
+  return buffer;
 }
 
 void INode::updateThetas(const vec& deltas, const vec& axes) {
@@ -296,9 +319,16 @@ size_t LNode::numEdges() const { return 0; }
 
 size_t LNode::numDOF() const { return 0; }
 
-pair<size_t, size_t> LNode::assignNodeIndicies(const size_t iNodeOffset, const size_t lNodeOffset) {
-  id = lNodeOffset;
-  return pair<size_t, size_t>(0, 1);
+void LNode::assignNodeIndicies(const size_t innerNodeOffset, 
+                               const size_t jointOffset,
+                               const size_t leafNodeOffset,
+                               size_t& numInnerNodes,
+                               size_t& numJointNodes,
+                               size_t& numLeafNodes) {
+  identity = leafNodeOffset;
+  numInnerNodes = 0;
+  numJointNodes = 0;
+  numLeafNodes  = 1;
 }
 
 vector<TreeNode*>& LNode::gatherLeaves(vector<TreeNode*>& buffer) {
@@ -306,7 +336,9 @@ vector<TreeNode*>& LNode::gatherLeaves(vector<TreeNode*>& buffer) {
   return buffer;
 }
 
-size_t LNode::getIdentifier() const { return id; }
+vector<TreeNode*>& LNode::gatherInnerNodes(vector<TreeNode*>& buffer) {
+  return buffer;
+}
 
 void LNode::updateThetas(const vec& deltas, const vec& axes) {}
 void LNode::renderTree(Context& ctx) const {}
