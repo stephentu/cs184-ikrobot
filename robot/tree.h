@@ -90,6 +90,9 @@ public:
    * reference */
   virtual void updateThetas(const arma::vec&, const arma::vec&) = 0;
 
+  /** Set all angles to the angles. */
+  virtual void setThetas(const arma::vec&, const arma::vec&) = 0;
+
   virtual void renderTree(Context&) const = 0;
 
   /** builds a context for THIS node */
@@ -159,6 +162,7 @@ public:
   std::vector<TreeNode*>& gatherInnerNodes(std::vector<TreeNode*>&);
   std::vector<TreeNode*>& gatherNodes(std::vector<TreeNode*>&);
   void updateThetas(const arma::vec&, const arma::vec&);
+  void setThetas(const arma::vec&, const arma::vec&);
   void renderTree(Context&) const;
   size_t getLeafIdentifier() const;
 private:
@@ -184,6 +188,7 @@ public:
   std::vector<TreeNode*>& gatherInnerNodes(std::vector<TreeNode*>&);
   std::vector<TreeNode*>& gatherNodes(std::vector<TreeNode*>&);
   void updateThetas(const arma::vec&, const arma::vec&);
+  void setThetas(const arma::vec&, const arma::vec&);
   void renderTree(Context&) const;
   size_t getLeafIdentifier() const;
 private:

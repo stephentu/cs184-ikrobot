@@ -175,7 +175,7 @@ static void display() {
     for (size_t i = 0; i < nodePositions.size(); i++) {
       glLoadName(targets.size() + i);
       glColor3f(1.0, 0.0, 0.0);
-      drawSphere(nodePositions[i], 0.1);
+      drawSphere(nodePositions[i], 0.08);
     }
   } else { // render everything
     for (size_t i = 0; i < targets.size(); i++) {
@@ -261,11 +261,12 @@ static int lastMouseButton, lastMouseState;
 #define LEFT_DOWN_CLICK (lastMouseButton == GLUT_LEFT_BUTTON && lastMouseState == GLUT_DOWN)
 #define LEFT_UP_CLICK (lastMouseButton == GLUT_LEFT_BUTTON && lastMouseState == GLUT_UP)
 
-static int activeTarget = -1;
+static bool hasActiveTarget = false;
+static unsigned int activeTarget = 0;
 static float activeTargetZBuf = 0.0;
 
 static void innerNodeClicked(size_t idx, int x, int y) {
-  cout << "inner node: " << (activeTarget-targets.size()) << endl;
+  //cout << "inner node: " << (activeTarget-targets.size()) << endl;
   robot->toggleConstraint(idx);
 }
 
@@ -299,21 +300,21 @@ static void mouseClicked(int button, int state, int x, int y) {
 
       unsigned int item = PICK_BUF[4 * minIdx + 3];
       activeTarget = item;
+      hasActiveTarget = true;
       glReadPixels(mouseX, mouseY, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &activeTargetZBuf);
+
+      if (activeTarget >= targets.size())
+        innerNodeClicked(activeTarget - targets.size(), x, y);
     }
-
-    if (((size_t)activeTarget) >= targets.size())
-      innerNodeClicked(activeTarget - targets.size(), x, y);
-
     redisplay();
   } else if (LEFT_UP_CLICK) { // reset the active cube
-    activeTarget = -1;
+    hasActiveTarget = false;
   }
 }
 
 static void mouseDragged(int x, int y) {
-  if (LEFT_DOWN_CLICK && activeTarget != -1) {
-    if (((size_t)activeTarget) < targets.size()) {
+  if (LEFT_DOWN_CLICK && hasActiveTarget) {
+    if (activeTarget < targets.size()) {
       //cout << "moueDragged: " << x << ", " << y << endl;
       vec3 pos = getWorldSpacePos(x, y, activeTargetZBuf);
       //cout << pos << endl;

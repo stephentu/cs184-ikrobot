@@ -56,6 +56,8 @@ public:
   void toggleConstraint(const size_t);
 
 private:
+  arma::vec& getQDot(const arma::vec&, arma::vec&, arma::vec&);
+
   const arma::vec3 _rootPosition;
   TreeNode* _root;
 

@@ -189,6 +189,15 @@ void INode::updateThetas(const vec& deltas, const vec& axes) {
     (*it)->updateThetas(deltas, axes);
 }
 
+void INode::setThetas(const vec& deltas, const vec& axes) {
+  for (size_t i = 0; i < _states.size(); i++)
+    _states[i]->setThetas(deltas, axes);
+  for (vector<TreeNode*>::iterator it = _kids.begin(); 
+      it != _kids.end();
+      ++it)
+    (*it)->setThetas(deltas, axes);
+}
+
 void INode::renderTree(Context& ctx) const {
   for (size_t i = 0; i < _states.size(); i++) {
     // start point
@@ -362,6 +371,7 @@ vector<TreeNode*>& LNode::gatherNodes(vector<TreeNode*>& buffer) {
 }
 
 void LNode::updateThetas(const vec& deltas, const vec& axes) {}
+void LNode::setThetas(const vec& deltas, const vec& axes) {}
 void LNode::renderTree(Context& ctx) const {}
 
 size_t LNode::getLeafIdentifier() const { return leafIdentity; }

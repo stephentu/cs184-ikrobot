@@ -53,6 +53,10 @@ public:
    * vector used is given as a reference */
   virtual void updateThetas(const arma::vec&, const arma::vec&) = 0;
 
+  /** Set the angles based on the global update vector. the rotation 
+   * vector used is given as a reference */
+  virtual void setThetas(const arma::vec&, const arma::vec&) = 0;
+
   /** Get an orthonormal basis (u, v, n) for this frame */
   virtual void getBasis(const Context&, arma::vec3&, arma::vec3&, arma::vec3&) const = 0;
 
@@ -89,6 +93,7 @@ public:
   size_t assignJointIndicies(const size_t);
   Context& pushContext(Context&) const;
   void updateThetas(const arma::vec&, const arma::vec&);
+  void setThetas(const arma::vec&, const arma::vec&);
   void getBasis(const Context&, arma::vec3&, arma::vec3&, arma::vec3&) const;
 
 private:
@@ -113,6 +118,7 @@ public:
   size_t assignJointIndicies(const size_t);
   Context& pushContext(Context&) const;
   void updateThetas(const arma::vec&, const arma::vec&);
+  void setThetas(const arma::vec&, const arma::vec&);
   void getBasis(const Context&, arma::vec3&, arma::vec3&, arma::vec3&) const;
 
 private:
@@ -141,6 +147,7 @@ public:
   size_t assignJointIndicies(const size_t);
   Context& pushContext(Context&) const;
   void updateThetas(const arma::vec&, const arma::vec&);
+  void setThetas(const arma::vec&, const arma::vec&);
   void getBasis(const Context&, arma::vec3&, arma::vec3&, arma::vec3&) const;
 
 private:

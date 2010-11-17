@@ -64,6 +64,10 @@ void RotationJoint::updateThetas(const vec& deltas, const vec& axes) {
   angle += deltas(jointId);
 }
 
+void RotationJoint::setThetas(const vec& deltas, const vec& axes) {
+  angle = deltas(jointId);
+}
+
 void RotationJoint::getBasis(const Context& ctx, vec3& u, vec3& v, vec3& n) const {
   n = getRotatedDirection(ctx);
   u = ctx.getVectorInContext(axis); 
@@ -119,6 +123,12 @@ void EulerBallAndSocketJoint::updateThetas(const vec& deltas, const vec& axes) {
   thetax += deltas(jointIds[0]);
   thetay += deltas(jointIds[1]);
   thetaz += deltas(jointIds[2]);
+}
+
+void EulerBallAndSocketJoint::setThetas(const vec& deltas, const vec& axes) {
+  thetax = deltas(jointIds[0]);
+  thetay = deltas(jointIds[1]);
+  thetaz = deltas(jointIds[2]);
 }
 
 void EulerBallAndSocketJoint::getBasis(const Context& ctx, vec3& u, vec3& v, vec3& n) const {
@@ -177,6 +187,10 @@ void AxisBallAndSocketJoint::updateThetas(const vec& deltas, const vec& axes) {
   currentTransform = rotation_matrix(axis, dt) * currentTransform; 
 }
 
+void AxisBallAndSocketJoint::setThetas(const vec& deltas, const vec& axes) {
+  throw runtime_error("setThetas unsupported for AxisBallAndSocketJoint");
+}
+
 void AxisBallAndSocketJoint::getBasis(const Context& ctx, vec3& u, vec3& v, vec3& n) const {
   n = ctx.getVectorInContext(currentDirection);
   if (vec3_equals(makeVec3(0, 1, 0), n) || vec3_equals(makeVec3(0, -1, 0), n))
@@ -186,6 +200,7 @@ void AxisBallAndSocketJoint::getBasis(const Context& ctx, vec3& u, vec3& v, vec3
   v = cross(n, u);
   normalize_vec3(u);
   normalize_vec3(v);
+  normalize_vec3(n);
 }
 
 }

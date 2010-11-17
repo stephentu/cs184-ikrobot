@@ -269,83 +269,134 @@ static inline mat truncate(const mat& m, const double threshold) {
   return mtrunc;
 }
 
+vec& LinkedTreeRobot::getQDot(const vec& desired, vec& qdot, vec& axes) {
+  vec P(3 * _numEffectors);
+  getEffectorPositions(P); // position of the effectors currently
+
+  vec F = clamp(desired - P, 0.5);
+
+  mat J;
+  computeJacobian(desired, J, axes);
+
+  mat Jc;
+  //cout << "++ Going to compute constraint jacobian ++" << endl;
+  computeConstraintJacobian(desired, axes, Jc);
+  //cout << "++ Finished computed constraint jacobian ++" << endl;
+  //cout << "Jc:" << endl << Jc << endl;
+
+  vec ga = trans(J) * F;
+  //cout << "ga:" << endl << ga << endl;
+
+  vec gc;
+  if (Jc.n_elem == 0 || is_all_zeros(Jc)) // no constraints, or all constraints OK
+    gc.zeros(ga.n_elem);
+  else {
+    vec b = -Jc * ga;
+    //cout << "b:" << endl << b << endl;
+    
+    mat JcT = trans(Jc);
+
+    mat A = Jc * JcT;
+    //cout << "A:" << endl << A << endl;
+
+    vec d;
+    mat U, V;
+    if (!svd(U, d, V, A))
+      cerr << "could not compute SVD" << endl;
+
+    //cout << "U:" << endl << U << endl;
+    //cout << "V:" << endl << V << endl;
+    //cout << "d:" << endl << d << endl;
+
+    //vec lambda = V * inv(D) * trans(U) * b; // too naive
+
+    vec utb = trans(U) * b;
+
+    vec dinv_ut_b(d.n_elem);
+    dinv_ut_b.zeros();
+
+    for (size_t d_idx = 0; d_idx < d.n_elem; d_idx++) {
+      double elem = d[d_idx];
+      if (!double_equals(elem, 0.0))
+        dinv_ut_b[d_idx] = 1.0 / elem * utb[d_idx];
+    }
+
+    gc = JcT * (V * dinv_ut_b); // Jc^T * lambda
+  }
+
+  qdot = ga + gc; // qdot
+  return qdot;
+}
+
+#define SIMPLE_EULER 1
+
 void LinkedTreeRobot::solveIKWithConstraints(const vec& desired) {
-  vec axes;
+
   assert(_numEffectors * 3 == desired.n_elem);
 
   vec lastUpdate, thisUpdate;
   lastUpdate.zeros(_numJoints);
   thisUpdate.zeros(_numJoints);
 
-  const double TOL = 1e-6;
+  const double MAX_ITER = 1000;
   size_t itersFinished = 0;
+  const double TOL = 1e-6; // stopping condition for ||thisUpdate-lastUpdate||
 
+#if SIMPLE_EULER
+  double h = 0.01; // initial h
+#else
+  double h = 0.2; // initial h
+  const double EPS = 0.02; // upper bound for error produced per unit of t 
+#endif
+
+  bool redo = false;
+  //cout << "----" << endl;
   do {
+
+#if SIMPLE_EULER
+    vec curAxes, f_tn_yn;
+    getQDot(desired, f_tn_yn, curAxes); // f(t_n, y_n), fills curAxes
     lastUpdate = thisUpdate;
+    thisUpdate = h * f_tn_yn;
+    updateThetas(thisUpdate, curAxes); // push robot ahead
+#else
+    vec curAxes, f_tn_yn;
+    getQDot(desired, f_tn_yn, curAxes); // f(t_n, y_n), fills curAxes
 
-    vec P(3 * _numEffectors);
-    getEffectorPositions(P);
+    vec alpha1 = h * f_tn_yn; // alpha1 = h f(t_n, y_n)
 
-    vec F = clamp(desired - P, 0.5);
+    // alpha2 = h/2 f(t_n, y_n) + h/2 f(t_n + h/2, y_n + h/2 f(t_n, y_n))
 
-    mat J;
-    computeJacobian(desired, J, axes);
+    vec temp_update = (h / 2.0) * f_tn_yn;
+    updateThetas(temp_update, curAxes); // shift robot
+      vec tempAxes, f_tn_mid;
+      getQDot(desired, f_tn_mid, tempAxes); // f(t_n + h/2, y_n + h/2 f(t_n, y_n))
+    updateThetas(-temp_update, curAxes); // unshift robot
 
-    mat Jc;
-    //cout << "++ Going to compute constraint jacobian ++" << endl;
-    computeConstraintJacobian(desired, axes, Jc);
-    //cout << "++ Finished computed constraint jacobian ++" << endl;
-    //cout << "Jc:" << endl << Jc << endl;
+    vec alpha2 = temp_update + (h / 2.0) * f_tn_mid;
 
-    vec ga = trans(J) * F;
-    //cout << "ga:" << endl << ga << endl;
+    double r = norm(alpha1 - alpha2, 2);
 
-    vec gc;
-    if (Jc.n_elem == 0 || is_all_zeros(Jc)) // no constraints, or all constraints OK
-      gc.zeros(ga.n_elem);
-    else {
-      vec b = -Jc * ga;
-      //cout << "b:" << endl << b << endl;
+    if (r < EPS) { // accept A2 with y_{n+1} = 2 A2 - A1
+      lastUpdate = thisUpdate;
+      thisUpdate = 2.0 * alpha2 - alpha1;
+      updateThetas(thisUpdate, curAxes); // push robot ahead
+      redo = false;
+    } else 
+      redo = true;
 
-      mat A = Jc * trans(Jc);
-      //cout << "A:" << endl << A << endl;
+    h = 0.9 * EPS / r * h; // update step size
+#endif
 
-      vec d;
-      mat U, V;
-      if (!svd(U, d, V, A))
-        cerr << "could not compute SVD" << endl;
-
-      //cout << "U:" << endl << U << endl;
-      //cout << "V:" << endl << V << endl;
-      //cout << "d:" << endl << d << endl;
-
-      //vec lambda = V * inv(D) * trans(U) * b; // too naive
-
-      vec utb = trans(U) * b;
-      vec dinvcols;
-      dinvcols.zeros(d.n_elem);
-      for (size_t d_idx = 0; d_idx < d.n_elem; d_idx++)
-        if (!double_equals(d(d_idx), 0.0))
-          dinvcols(d_idx) = 1.0 / d(d_idx);
-
-      vec dinv_ut_b = diagmat(dinvcols) * utb; 
-
-      gc = trans(Jc) * (V * dinv_ut_b); // Jc^T * lambda
-    }
-
-    vec qdot = ga + gc;
-
-    thisUpdate = 0.01 * qdot; // forward euler
-
-    updateThetas(thisUpdate, axes);
-
-    //if ((++itersFinished % 100) == 0) 
-    //  cout << "Just finished " << itersFinished << " iterations" << endl;
-  } while (norm(thisUpdate - lastUpdate, 2) >= TOL);
+  } while (++itersFinished < MAX_ITER && (redo || norm(thisUpdate - lastUpdate, 2) >= TOL));
+  //cout << "Solution took " << itersFinished << " iterations" << endl
+  //      << "h = " << h << endl;
+  //cout << "----" << endl;
 }
 
 void LinkedTreeRobot::toggleConstraint(const size_t idx) {
   assert(0 <= idx && idx < _allNodes.size());
+  //if (_allNodes[idx]->isLeafNode()) return;
   if (_allNodes[idx]->isFixed()) 
     _allNodes[idx]->setFixed(false);
   else {
