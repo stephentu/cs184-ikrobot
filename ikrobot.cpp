@@ -169,13 +169,13 @@ static void display() {
       drawSphere(targets[i], 0.1);
     }
 
-    vector<vec3> innerNodePositions;
-    robot->getInnerNodePositions(innerNodePositions);
+    vector<vec3> nodePositions;
+    robot->getNodePositions(nodePositions);
 
-    for (size_t i = 0; i < innerNodePositions.size(); i++) {
+    for (size_t i = 0; i < nodePositions.size(); i++) {
       glLoadName(targets.size() + i);
       glColor3f(1.0, 0.0, 0.0);
-      drawSphere(innerNodePositions[i], 0.1);
+      drawSphere(nodePositions[i], 0.1);
     }
   } else { // render everything
     for (size_t i = 0; i < targets.size(); i++) {
@@ -266,6 +266,7 @@ static float activeTargetZBuf = 0.0;
 
 static void innerNodeClicked(size_t idx, int x, int y) {
   cout << "inner node: " << (activeTarget-targets.size()) << endl;
+  robot->toggleConstraint(idx);
 }
 
 static void mouseClicked(int button, int state, int x, int y) {
@@ -318,7 +319,7 @@ static void mouseDragged(int x, int y) {
       //cout << pos << endl;
       targets[activeTarget] = pos;
 
-      robot->solveIK(flattenVector(targets));
+      robot->solveIKWithConstraints(flattenVector(targets));
     } 
   }
 }
@@ -415,6 +416,8 @@ int main(int argc, char **argv) {
           "numEffectors: " << robot->getNumEffectors() << endl;
 
   robot->getEffectorPositions(targets);
+
+  cout << "Got effector positions" << endl;
 
   // -----------------
 

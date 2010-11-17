@@ -33,10 +33,10 @@ public:
   virtual size_t numDOF() const = 0;
 
   /** Assign indicies in prefix order.
-   * 1st param- intermediate node offset
+   * 1st param- node offset
    * 2nd param- joint offset
    * 3rd param- leaf node offset
-   * 4th param- num intermediate nodes set
+   * 4th param- num nodes set
    * 5th param- num joint nodes set
    * 6th param- num leaf nodes set
    */ 
@@ -54,6 +54,10 @@ public:
   /** Gather all inner nodes of this tree (including this node) into buffer,
    * using push_back to insert */
   virtual std::vector<TreeNode*>& gatherInnerNodes(std::vector<TreeNode*>&) = 0;
+
+  /** Gather all nodes of this tree (including this node) into buffer,
+   * using push_back to insert */
+  virtual std::vector<TreeNode*>& gatherNodes(std::vector<TreeNode*>&) = 0;
 
   /** Returns the global position of THIS node, given the input position for
    * the ROOT node. If this node IS the root node, then the same position will
@@ -76,9 +80,11 @@ public:
   /** My link state (requires lookup into parent, illdefined for root) */
   inline LinkState* getLinkState() const;
 
-  /** An identifier for every node. leaf nodes and inner nodes have their own
-   * set of identifiers */
+  /** An identifier for every node. */
   inline size_t getIdentifier() const;
+
+  /** An identifier for leaf nodes only. is an error for non leaf nodes */
+  virtual size_t getLeafIdentifier() const = 0;
 
   /** Update all angle by being given deltas. rotation axes given as a
    * reference */
@@ -89,10 +95,20 @@ public:
   /** builds a context for THIS node */
   Context& getContextForNode(Context&);
 
+  inline bool isFixed() const;
+
+  inline void setFixed(const bool);
+
+  inline arma::vec3 getFixedPosition() const;
+
+  inline void setFixedPosition(const arma::vec3&);
+
 protected:
   TreeNode* _parent;
   size_t idx;
   size_t identity;
+  bool _fixed; // is there a positional constraint
+  arma::vec3 _position; // what is the fixed position constraint?
 };
 
 inline bool TreeNode::isRootNode() const { return _parent == NULL; }
@@ -115,6 +131,14 @@ inline LinkState* TreeNode::getLinkState() const {
 
 inline size_t TreeNode::getIdentifier() const { return identity; }
 
+inline bool TreeNode::isFixed() const { return _fixed; }
+
+inline void TreeNode::setFixed(const bool _f) { _fixed = _f; }
+
+inline arma::vec3 TreeNode::getFixedPosition() const { return _position; }
+
+inline void TreeNode::setFixedPosition(const arma::vec3& _p) { _position = _p; }
+
 class INode : public TreeNode {
 public:
   INode(const std::vector<LinkState*>&, const std::vector<TreeNode*>&);
@@ -133,8 +157,10 @@ public:
                           size_t&);
   std::vector<TreeNode*>& gatherLeaves(std::vector<TreeNode*>&);
   std::vector<TreeNode*>& gatherInnerNodes(std::vector<TreeNode*>&);
+  std::vector<TreeNode*>& gatherNodes(std::vector<TreeNode*>&);
   void updateThetas(const arma::vec&, const arma::vec&);
   void renderTree(Context&) const;
+  size_t getLeafIdentifier() const;
 private:
   std::vector<LinkState*> _states;
   std::vector<TreeNode*> _kids;
@@ -156,8 +182,12 @@ public:
                           size_t&);
   std::vector<TreeNode*>& gatherLeaves(std::vector<TreeNode*>&);
   std::vector<TreeNode*>& gatherInnerNodes(std::vector<TreeNode*>&);
+  std::vector<TreeNode*>& gatherNodes(std::vector<TreeNode*>&);
   void updateThetas(const arma::vec&, const arma::vec&);
   void renderTree(Context&) const;
+  size_t getLeafIdentifier() const;
+private:
+  size_t leafIdentity;
 };
 
 }

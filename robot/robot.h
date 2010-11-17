@@ -30,9 +30,10 @@ public:
   std::vector<arma::vec3>& getEffectorPositions(std::vector<arma::vec3>&) const;
 
   /** Get each of the inner node positions as one large vector */
-  std::vector<arma::vec3>& getInnerNodePositions(std::vector<arma::vec3>&) const;
+  std::vector<arma::vec3>& getNodePositions(std::vector<arma::vec3>&) const;
 
   arma::mat& computeJacobian(const arma::vec&, arma::mat&, arma::vec&) const;
+  arma::mat& computeConstraintJacobian(const arma::vec&, const arma::vec&, arma::mat&) const;
   arma::vec computeDeltaThetas(const arma::vec&, arma::vec&) const;
   void updateThetas(const arma::vec&, const arma::vec&);
 
@@ -40,12 +41,19 @@ public:
    * try to match this input */
   void solveIK(const arma::vec&);
 
+  /** Main IK with constraints method. same input as solveIK. uses completely
+   * different algorithm (iterative jacobian transpose with lagrange
+   * multipliers). the method type is ignored when using this method */
+  void solveIKWithConstraints(const arma::vec&);
+
   /** draw the robot in openGL */
   void renderRobot() const;
 
   inline SolnType getMethod() const;
 
   inline void setMethod(const SolnType);
+
+  void toggleConstraint(const size_t);
 
 private:
   const arma::vec3 _rootPosition;
@@ -61,6 +69,9 @@ private:
   // inner nodes, from traversing the root. this + effectors gives us the
   // entire tree from root
   std::vector<TreeNode*> _innerNodes;
+
+  // all nodes from root
+  std::vector<TreeNode*> _allNodes;
 
   // method to use when solving for delta thetas
   SolnType _method;

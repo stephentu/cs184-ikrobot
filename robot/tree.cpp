@@ -17,7 +17,7 @@ using namespace edu_berkeley_cs184::util;
 namespace edu_berkeley_cs184 {
 namespace robot {
 
-TreeNode::TreeNode() { _parent = NULL; }
+TreeNode::TreeNode() { _parent = NULL; _fixed = false; }
 TreeNode::~TreeNode() {}
 
 vec3 TreeNode::getGlobalPosition(const vec3& rootPoint) {
@@ -171,6 +171,15 @@ vector<TreeNode*>& INode::gatherInnerNodes(vector<TreeNode*>& buffer) {
   return buffer;
 }
 
+vector<TreeNode*>& INode::gatherNodes(vector<TreeNode*>& buffer) {
+  buffer.push_back(this);
+  for (vector<TreeNode*>::iterator it = _kids.begin(); 
+      it != _kids.end();
+      ++it)
+    (*it)->gatherNodes(buffer);
+  return buffer;
+}
+
 void INode::updateThetas(const vec& deltas, const vec& axes) {
   for (size_t i = 0; i < _states.size(); i++)
     _states[i]->updateThetas(deltas, axes);
@@ -274,6 +283,8 @@ void INode::renderTree(Context& ctx) const {
 
     if (isRootNode())
       glColor3d(0.0, 0.0, 0.8);
+    else if (isFixed())
+      glColor3d(0.0, 1.0, 1.0); 
     else
       glColor3d(0.0, 0.0, 1.0);
 
@@ -303,6 +314,10 @@ void INode::renderTree(Context& ctx) const {
   }
 }
 
+size_t INode::getLeafIdentifier() const { 
+  throw runtime_error("getLeafIdentifier on non leaf node");
+}
+
 bool LNode::isLeafNode() const { return true; }
 
 vector<TreeNode*>::const_iterator LNode::getChildren() const { 
@@ -325,8 +340,9 @@ void LNode::assignNodeIndicies(const size_t innerNodeOffset,
                                size_t& numInnerNodes,
                                size_t& numJointNodes,
                                size_t& numLeafNodes) {
-  identity = leafNodeOffset;
-  numInnerNodes = 0;
+  identity = innerNodeOffset;
+  leafIdentity = leafNodeOffset;
+  numInnerNodes = 1;
   numJointNodes = 0;
   numLeafNodes  = 1;
 }
@@ -340,8 +356,15 @@ vector<TreeNode*>& LNode::gatherInnerNodes(vector<TreeNode*>& buffer) {
   return buffer;
 }
 
+vector<TreeNode*>& LNode::gatherNodes(vector<TreeNode*>& buffer) {
+  buffer.push_back(this);
+  return buffer;
+}
+
 void LNode::updateThetas(const vec& deltas, const vec& axes) {}
 void LNode::renderTree(Context& ctx) const {}
+
+size_t LNode::getLeafIdentifier() const { return leafIdentity; }
 
 }
 }
