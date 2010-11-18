@@ -192,6 +192,9 @@ static inline vec clamp(const vec& input, const double maxMag) {
   return v;
 }
 
+static const double lambda = 1.5;
+static const double lambda_squared = lambda * lambda;
+
 vec LinkedTreeRobot::computeDeltaThetas(const vec& desiredPositions, vec& axes) const {
 
   assert(_numEffectors * 3 == desiredPositions.n_elem);
@@ -220,10 +223,6 @@ vec LinkedTreeRobot::computeDeltaThetas(const vec& desiredPositions, vec& axes) 
     mat I(J.n_rows, J.n_rows); 
     I.eye();
 
-    double lambda = 1.5;
-
-    double lambda_squared = lambda * lambda;
-
     vec soln = (JT * inv(JJT + lambda_squared * I)) * e;
     assert(soln.n_elem == _numJoints);
     return soln;
@@ -246,9 +245,15 @@ void LinkedTreeRobot::renderRobot() const {
 }
 
 void LinkedTreeRobot::solveIK(const vec& desired) {
-  vec axes;
-  vec deltaThetas = computeDeltaThetas(desired, axes);
-  updateThetas(deltaThetas, axes);
+  const double MAX_ITER = 100;
+  size_t itersFinished = 0;
+  const double TOL = 1e-3; 
+  vec deltaThetas;
+  do {
+    vec axes;
+    deltaThetas = computeDeltaThetas(desired, axes);
+    updateThetas(deltaThetas, axes);
+  } while (++itersFinished < MAX_ITER && norm(deltaThetas, 2) >= TOL);
 }
 
 static inline bool is_all_zeros(const mat& m) {
@@ -334,13 +339,12 @@ void LinkedTreeRobot::solveIKWithConstraints(const vec& desired) {
 
   assert(_numEffectors * 3 == desired.n_elem);
 
-  vec lastUpdate, thisUpdate;
-  lastUpdate.zeros(_numJoints);
+  vec thisUpdate;
   thisUpdate.zeros(_numJoints);
 
   const double MAX_ITER = 1000;
   size_t itersFinished = 0;
-  const double TOL = 1e-6; // stopping condition for ||thisUpdate-lastUpdate||
+  const double TOL = 5e-4; // stopping condition for ||thisUpdate||
 
 #if SIMPLE_EULER
   double h = 0.01; // initial h
@@ -356,7 +360,6 @@ void LinkedTreeRobot::solveIKWithConstraints(const vec& desired) {
 #if SIMPLE_EULER
     vec curAxes, f_tn_yn;
     getQDot(desired, f_tn_yn, curAxes); // f(t_n, y_n), fills curAxes
-    lastUpdate = thisUpdate;
     thisUpdate = h * f_tn_yn;
     updateThetas(thisUpdate, curAxes); // push robot ahead
 #else
@@ -378,7 +381,6 @@ void LinkedTreeRobot::solveIKWithConstraints(const vec& desired) {
     double r = norm(alpha1 - alpha2, 2);
 
     if (r < EPS) { // accept A2 with y_{n+1} = 2 A2 - A1
-      lastUpdate = thisUpdate;
       thisUpdate = 2.0 * alpha2 - alpha1;
       updateThetas(thisUpdate, curAxes); // push robot ahead
       redo = false;
@@ -388,7 +390,7 @@ void LinkedTreeRobot::solveIKWithConstraints(const vec& desired) {
     h = 0.9 * EPS / r * h; // update step size
 #endif
 
-  } while (++itersFinished < MAX_ITER && (redo || norm(thisUpdate - lastUpdate, 2) >= TOL));
+  } while (++itersFinished < MAX_ITER && (redo || norm(thisUpdate, 2) >= TOL));
   //cout << "Solution took " << itersFinished << " iterations" << endl
   //      << "h = " << h << endl;
   //cout << "----" << endl;

@@ -320,7 +320,8 @@ static void mouseDragged(int x, int y) {
       //cout << pos << endl;
       targets[activeTarget] = pos;
 
-      robot->solveIKWithConstraints(flattenVector(targets));
+      //robot->solveIKWithConstraints(flattenVector(targets));
+      robot->solveIK(flattenVector(targets));
     } 
   }
 }
