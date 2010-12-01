@@ -78,6 +78,10 @@ public:
 
   inline bool isEndOfBuffer() const;
 
+  inline size_t bufferPos() const;
+
+  inline size_t bufferSize() const;
+
 private:
   arma::vec& getQDot(const arma::vec&, arma::vec&, arma::vec&);
 
@@ -162,6 +166,14 @@ inline void LinkedTreeRobot::advance() {
 
 inline bool LinkedTreeRobot::isEndOfBuffer() const { 
   return _buf.isEndOfBuffer();
+}
+
+inline size_t LinkedTreeRobot::bufferPos() const {
+  return _buf.pos();
+}
+
+inline size_t LinkedTreeRobot::bufferSize() const {
+  return _buf.size();
 }
 
 }

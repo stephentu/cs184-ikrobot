@@ -71,6 +71,19 @@ static bool isPlayback = false; // if false, in rec mode. if true, in playback m
 
 static size_t playbackFps = 20; // 20 frames per second
 
+static void* textFont = GLUT_BITMAP_HELVETICA_18;
+
+enum MenuOption {
+  RESET_BUFFER,
+  TOGGLE_ANIMATION,
+  FPS_5,
+  FPS_10,
+  FPS_15,
+  FPS_20,
+  FPS_25,
+  FPS_30,
+};
+
 static void setViewport() {
   glViewport(0, 0, width, height);
 }
@@ -158,6 +171,12 @@ static inline vec3 getWorldSpacePos(int x, int y, double zbuf) {
   return makeVec3(posX, posY, posZ);
 }
 
+static inline void writeString(void *font, const char *str, float x, float y) {
+  glRasterPos3d(x, y, 0.0f);
+  const char *p = &str[0];
+  while (*p) glutBitmapCharacter(font, *p++);
+}
+
 static void display() {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -166,6 +185,7 @@ static void display() {
   glLoadIdentity();
 
   if (displayMode == GL_SELECT) { // need to setup pick matrix
+    // get the viewport size
     GLint view[4];
     glGetIntegerv(GL_VIEWPORT, view);
     gluPickMatrix(mouseX, mouseY, 1.0, 1.0, view);
@@ -207,7 +227,14 @@ static void display() {
       if (robot->isEndOfBuffer()) robot->resetPointer(); // wrap around if necessary
     }
     robot->renderRobot(); // draw the robot to the buffer
-    if (isPlayback) { // impose animation time delay
+    if (isPlayback) { 
+      // write progress status to lower right corner of screen
+      const double status = (((double)robot->bufferPos()) / ((double)robot->bufferSize())) * 100.0;
+      char text[7]; // xxx.x%
+      snprintf(text, sizeof(text), "%.1f%%", status);
+      writeString(textFont, text, 2.0, -2.0); // TODO: fix hardcoded positions
+
+      // impose animation time delay
       const double secPerFrame = 1.0 / ((double)playbackFps);
       msleep((long)(secPerFrame * 1000.0));
     }
@@ -371,6 +398,55 @@ static void mouseDragged(int x, int y) {
   }
 }
 
+static void fpsMenuHandler(int arg0) {
+  switch (arg0) {
+    case FPS_5:
+      playbackFps = 5; break;
+    case FPS_10:
+      playbackFps = 10; break;
+    case FPS_15:
+      playbackFps = 15; break;
+    case FPS_20:
+      playbackFps = 20; break;
+    case FPS_25:
+      playbackFps = 25; break;
+    case FPS_30:
+      playbackFps = 30; break;
+    default:
+      break;
+  }
+}
+
+static void mainMenuHandler(int arg0) {
+  switch (arg0) {
+    case RESET_BUFFER:
+      isPlayback = false;
+      robot->resetBuffer();
+      break;
+    case TOGGLE_ANIMATION:
+      isPlayback = !isPlayback;
+      break;
+    default:
+      break;
+  }
+}
+
+static inline void initMenus() {
+  int fpsSubMenu = glutCreateMenu(fpsMenuHandler);
+  glutAddMenuEntry("5 FPS",   FPS_5);
+  glutAddMenuEntry("10 FPS", FPS_10);
+  glutAddMenuEntry("15 FPS", FPS_15);
+  glutAddMenuEntry("20 FPS", FPS_20);
+  glutAddMenuEntry("25 FPS", FPS_25);
+  glutAddMenuEntry("30 FPS", FPS_30);
+
+  glutCreateMenu(mainMenuHandler);
+  glutAddMenuEntry("Reset", RESET_BUFFER);
+  glutAddMenuEntry("Toggle Animation", TOGGLE_ANIMATION);
+  glutAddSubMenu("Framerate", fpsSubMenu);
+
+  glutAttachMenu(GLUT_RIGHT_BUTTON);
+}
 
 int main(int argc, char **argv) {  
 
@@ -484,6 +560,8 @@ int main(int argc, char **argv) {
   glutDisplayFunc(display);
   glutMouseFunc(mouseClicked);
   glutMotionFunc(mouseDragged);
+
+  initMenus();
 
   glutMainLoop();
 
