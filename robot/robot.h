@@ -57,6 +57,10 @@ public:
 
   void toggleConstraint(const size_t);
 
+  inline void mark();
+
+  inline void reset();
+
 private:
   arma::vec& getQDot(const arma::vec&, arma::vec&, arma::vec&);
 
@@ -79,6 +83,8 @@ private:
 
   // method to use when solving for delta thetas
   SolnType _method;
+
+  arma::vec3 _oldRootPosition;
 };
 
 inline size_t LinkedTreeRobot::getNumJoints() const {
@@ -98,6 +104,16 @@ inline void LinkedTreeRobot::setMethod(const SolnType _t) {
 inline void LinkedTreeRobot::setRootPosition(const arma::vec3& _p) { 
   //std::cout << "Setting root position to: " << _p << std::endl;
   _rootPosition = _p;
+}
+
+inline void LinkedTreeRobot::mark() { 
+  _root->mark(); 
+  _oldRootPosition = _rootPosition;
+}
+
+inline void LinkedTreeRobot::reset() { 
+  _root->reset(); 
+  _rootPosition = _oldRootPosition;
 }
 
 }

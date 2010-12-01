@@ -95,6 +95,10 @@ public:
 
   virtual void renderTree(Context&) const = 0;
 
+  virtual void mark() = 0;
+
+  virtual void reset() = 0;
+
   /** builds a context for THIS node */
   Context& getContextForNode(Context&);
 
@@ -165,6 +169,8 @@ public:
   void setThetas(const arma::vec&, const arma::vec&);
   void renderTree(Context&) const;
   size_t getLeafIdentifier() const;
+  void mark();
+  void reset();
 private:
   std::vector<LinkState*> _states;
   std::vector<TreeNode*> _kids;
@@ -191,6 +197,8 @@ public:
   void setThetas(const arma::vec&, const arma::vec&);
   void renderTree(Context&) const;
   size_t getLeafIdentifier() const;
+  void mark();
+  void reset();
 private:
   size_t leafIdentity;
 };

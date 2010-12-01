@@ -24,6 +24,8 @@ RotationJoint::RotationJoint(const double _l,
 
   // now assert that the dot product of axis and baselineDirection is zero
   assert( double_equals(dot(axis, baselineDirection), 0) );
+
+  mark();
 }
 
 size_t RotationJoint::dof() const { return 1; }
@@ -75,11 +77,24 @@ void RotationJoint::getBasis(const Context& ctx, vec3& u, vec3& v, vec3& n) cons
   normalize_vec3(v);
 }
 
+void RotationJoint::mark() {
+  oldAxis              = axis;
+  oldAngle             = angle;
+  oldBaselineDirection = baselineDirection;
+}
+
+void RotationJoint::reset() {
+  axis              = oldAxis;
+  angle             = oldAngle;
+  baselineDirection = oldBaselineDirection;
+}
+
 EulerBallAndSocketJoint::EulerBallAndSocketJoint(const double _l, const vec3& _baseline) :
   LinkState(_l), baselineDirection(_baseline), thetax(0.0), thetay(0.0), thetaz(0.0) {
 
   normalize_vec3(baselineDirection);
 
+  mark();
 }
 
 size_t EulerBallAndSocketJoint::dof() const { return 3; }
@@ -137,10 +152,23 @@ void EulerBallAndSocketJoint::getBasis(const Context& ctx, vec3& u, vec3& v, vec
   v = cross(n, u);
 }
 
+void EulerBallAndSocketJoint::mark() {
+  oldThetax = thetax;
+  oldThetay = thetay;
+  oldThetaz = thetaz;
+}
+
+void EulerBallAndSocketJoint::reset() {
+  thetax = oldThetax;
+  thetay = oldThetay;
+  thetaz = oldThetaz;
+}
+
 AxisBallAndSocketJoint::AxisBallAndSocketJoint(const double _l, const vec3& startingDir) 
   : LinkState(_l), currentDirection(startingDir) {
   normalize_vec3(currentDirection);
   currentTransform.eye();
+  mark();
 }
 
 size_t AxisBallAndSocketJoint::dof() const { return 1; }
@@ -201,6 +229,16 @@ void AxisBallAndSocketJoint::getBasis(const Context& ctx, vec3& u, vec3& v, vec3
   normalize_vec3(u);
   normalize_vec3(v);
   normalize_vec3(n);
+}
+
+void AxisBallAndSocketJoint::mark() {
+  oldDirection = currentDirection;
+  oldTransform = currentTransform;
+}
+
+void AxisBallAndSocketJoint::reset() {
+  currentDirection = oldDirection;
+  currentTransform = oldTransform;
 }
 
 }

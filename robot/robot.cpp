@@ -37,6 +37,8 @@ LinkedTreeRobot::LinkedTreeRobot(const vec3& pos, TreeNode* root) : _rootPositio
 
   assert(nJoints == _numJoints);
   assert(nLeaves == _numEffectors);
+
+  _oldRootPosition = _rootPosition;
 }
 
 LinkedTreeRobot::~LinkedTreeRobot() {

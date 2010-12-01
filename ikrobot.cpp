@@ -253,6 +253,13 @@ static void keyboardHandler(unsigned char key, int x, int y) {
       solnType = (solnType + 1) % ((int)NUM_TYPES);
       robot->setMethod((SolnType)solnType);
       break;
+    case 'm': // mark
+      robot->mark();
+      break;
+    case 'r': // reset
+      robot->reset();
+      robot->getEffectorPositions(targets); // also reset effectors
+      break;
   }
 }
 

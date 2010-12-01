@@ -327,6 +327,28 @@ size_t INode::getLeafIdentifier() const {
   throw runtime_error("getLeafIdentifier on non leaf node");
 }
 
+void INode::mark() {
+  for (vector<LinkState*>::iterator it = _states.begin();
+      it != _states.end();
+      ++it)
+    (*it)->mark();
+  for (vector<TreeNode*>::iterator it = _kids.begin();
+      it != _kids.end();
+      ++it)
+    (*it)->mark();
+}
+
+void INode::reset() {
+  for (vector<LinkState*>::iterator it = _states.begin();
+      it != _states.end();
+      ++it)
+    (*it)->reset();
+  for (vector<TreeNode*>::iterator it = _kids.begin();
+      it != _kids.end();
+      ++it)
+    (*it)->reset();
+}
+
 bool LNode::isLeafNode() const { return true; }
 
 vector<TreeNode*>::const_iterator LNode::getChildren() const { 
@@ -375,6 +397,9 @@ void LNode::setThetas(const vec& deltas, const vec& axes) {}
 void LNode::renderTree(Context& ctx) const {}
 
 size_t LNode::getLeafIdentifier() const { return leafIdentity; }
+
+void LNode::mark() {}
+void LNode::reset() {}
 
 }
 }

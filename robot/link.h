@@ -60,6 +60,14 @@ public:
   /** Get an orthonormal basis (u, v, n) for this frame */
   virtual void getBasis(const Context&, arma::vec3&, arma::vec3&, arma::vec3&) const = 0;
 
+  /** Mark a set point for this link. subsequent calls to reset will move the
+   * link back to this exact state. calling mark overrides the previous set
+   * point */
+  virtual void mark() = 0;
+
+  /** reset this link to marked positions */
+  virtual void reset() = 0;
+
 private:
   double _length;
 };
@@ -96,10 +104,17 @@ public:
   void setThetas(const arma::vec&, const arma::vec&);
   void getBasis(const Context&, arma::vec3&, arma::vec3&, arma::vec3&) const;
 
+  void mark();
+  void reset();
+
 private:
   arma::vec3 axis; /* NORMALIZED axis of rotation */ 
   double angle; /* radians */
   arma::vec3 baselineDirection; /* When angle = 0, what NORMALIZED dir is this link pointing in? */
+
+  arma::vec3 oldAxis;
+  double oldAngle;
+  arma::vec3 oldBaselineDirection;
 
   size_t jointId;
 };
@@ -121,6 +136,9 @@ public:
   void setThetas(const arma::vec&, const arma::vec&);
   void getBasis(const Context&, arma::vec3&, arma::vec3&, arma::vec3&) const;
 
+  void mark();
+  void reset();
+
 private:
   arma::vec3 baselineDirection;
 
@@ -128,6 +146,10 @@ private:
   double thetax;
   double thetay;
   double thetaz;
+
+  double oldThetax;
+  double oldThetay;
+  double oldThetaz;
 
   std::vector<size_t> jointIds;
 
@@ -150,9 +172,15 @@ public:
   void setThetas(const arma::vec&, const arma::vec&);
   void getBasis(const Context&, arma::vec3&, arma::vec3&, arma::vec3&) const;
 
+  void mark();
+  void reset();
+
 private:
   arma::vec3 currentDirection; /** NORMALIZED */
   arma::mat44 currentTransform; /** local frame transform matrix */
+
+  arma::vec3 oldDirection;
+  arma::mat44 oldTransform;
 
   size_t jointId;
 
