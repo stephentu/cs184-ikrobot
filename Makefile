@@ -22,10 +22,10 @@ context.o: robot/context.cpp robot/context.h util/util.h
 ikrobot.o: ikrobot.cpp util/util.h
 	$(CXX) -c $(CXXFLAGS) -o $@ $<
 
-link.o: robot/link.cpp robot/link.h util/util.h
+link.o: robot/link.cpp robot/link.h util/util.h util/buffer.h
 	$(CXX) -c $(CXXFLAGS) -o $@ $<
 
-robot.o: robot/robot.cpp robot/robot.h util/util.h
+robot.o: robot/robot.cpp robot/robot.h util/util.h util/buffer.h
 	$(CXX) -c $(CXXFLAGS) -o $@ $<
 
 tree.o: robot/tree.cpp robot/tree.h util/util.h

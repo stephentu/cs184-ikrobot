@@ -89,6 +89,21 @@ void RotationJoint::reset() {
   baselineDirection = oldBaselineDirection;
 }
 
+void RotationJoint::save() { 
+  _buf.append(axis, angle, baselineDirection);
+}
+
+void RotationJoint::restore() {
+  Tuple3<vec3, double, vec3> values = _buf.getCurrent();
+  axis              = values._1;
+  angle             = values._2;
+  baselineDirection = values._3;
+}
+
+void RotationJoint::resetPointer() { _buf.resetPointer(); }
+void RotationJoint::resetBuffer() { _buf.resetBuffer(); }
+void RotationJoint::advance() { _buf.advance(); }
+
 EulerBallAndSocketJoint::EulerBallAndSocketJoint(const double _l, const vec3& _baseline) :
   LinkState(_l), baselineDirection(_baseline), thetax(0.0), thetay(0.0), thetaz(0.0) {
 
@@ -163,6 +178,14 @@ void EulerBallAndSocketJoint::reset() {
   thetay = oldThetay;
   thetaz = oldThetaz;
 }
+
+#define TODO (throw runtime_error("TODO"))
+
+void EulerBallAndSocketJoint::save() { TODO; }
+void EulerBallAndSocketJoint::restore() { TODO; }
+void EulerBallAndSocketJoint::resetPointer() { TODO; }
+void EulerBallAndSocketJoint::resetBuffer() { TODO; }
+void EulerBallAndSocketJoint::advance() { TODO; }
 
 AxisBallAndSocketJoint::AxisBallAndSocketJoint(const double _l, const vec3& startingDir) 
   : LinkState(_l), currentDirection(startingDir) {
@@ -240,6 +263,20 @@ void AxisBallAndSocketJoint::reset() {
   currentDirection = oldDirection;
   currentTransform = oldTransform;
 }
+
+void AxisBallAndSocketJoint::save() { 
+  _buf.append(currentDirection, currentTransform);
+}
+
+void AxisBallAndSocketJoint::restore() { 
+  pair<vec3, mat44> values = _buf.getCurrent();
+  currentDirection = values.first;
+  currentTransform = values.second;
+}
+
+void AxisBallAndSocketJoint::resetPointer() { _buf.resetPointer(); }
+void AxisBallAndSocketJoint::resetBuffer() { _buf.resetBuffer(); }
+void AxisBallAndSocketJoint::advance() { _buf.advance(); }
 
 }
 }

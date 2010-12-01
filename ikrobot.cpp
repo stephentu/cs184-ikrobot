@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
+
 #include <cstdarg>
 #include <iostream>
 #include <cmath>
+#include <ctime>
 
 #include <armadillo>
 
@@ -38,6 +40,17 @@ static inline vec flattenVector(const vector<vec3>& buffer) {
   return v;
 }
 
+/** http://cc.byexamples.com/2007/05/25/nanosleep-is-better-than-sleep-and-usleep */
+static int msleep(unsigned long milisec) {
+    struct timespec req={0};
+    time_t sec=(int)(milisec/1000);
+    milisec=milisec-(sec*1000);
+    req.tv_sec=sec;
+    req.tv_nsec=milisec*1000000L;
+    while(nanosleep(&req,&req)==-1)
+         continue;
+    return 1;
+}
 
 static LinkedTreeRobot *robot;
 static vector<vec3> targets;
@@ -53,6 +66,10 @@ static unsigned int PICK_BUF[PICK_BUFFER_SIZE];
 static int mouseX, mouseY; // mouseX and mouseY **AFTER** glut adjustment in y
 
 static int solnType = 0;
+
+static bool isPlayback = false; // if false, in rec mode. if true, in playback mode
+
+static size_t playbackFps = 20; // 20 frames per second
 
 static void setViewport() {
   glViewport(0, 0, width, height);
@@ -178,11 +195,22 @@ static void display() {
       drawSphere(nodePositions[i], 0.08);
     }
   } else { // render everything
-    for (size_t i = 0; i < targets.size(); i++) {
-      glColor3f(1.0, 0.0, 0.0);
-      drawSphere(targets[i], 0.1);
+    if (!isPlayback)
+      for (size_t i = 0; i < targets.size(); i++) {
+        glColor3f(1.0, 0.0, 0.0);
+        drawSphere(targets[i], 0.1);
+      }
+    else if (isPlayback && !robot->isEndOfBuffer()) { // if we are in playback and there are contents in the buffer
+      robot->restore(); // restore robot to next animation frame
+      robot->getEffectorPositions(targets); // reset effectors
+      robot->advance(); // push frame pointer forward
+      if (robot->isEndOfBuffer()) robot->resetPointer(); // wrap around if necessary
     }
-    robot->renderRobot();
+    robot->renderRobot(); // draw the robot to the buffer
+    if (isPlayback) { // impose animation time delay
+      const double secPerFrame = 1.0 / ((double)playbackFps);
+      msleep((long)(secPerFrame * 1000.0));
+    }
   }
 
   if (displayMode == GL_RENDER)
@@ -259,6 +287,12 @@ static void keyboardHandler(unsigned char key, int x, int y) {
     case 'r': // reset
       robot->reset();
       robot->getEffectorPositions(targets); // also reset effectors
+      break;
+    case 'a': // append
+      robot->save();
+      break;
+    case 'x': // next
+      isPlayback = !isPlayback;
       break;
   }
 }

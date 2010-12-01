@@ -327,27 +327,30 @@ size_t INode::getLeafIdentifier() const {
   throw runtime_error("getLeafIdentifier on non leaf node");
 }
 
-void INode::mark() {
-  for (vector<LinkState*>::iterator it = _states.begin();
-      it != _states.end();
-      ++it)
-    (*it)->mark();
-  for (vector<TreeNode*>::iterator it = _kids.begin();
-      it != _kids.end();
-      ++it)
-    (*it)->mark();
-}
+#define OVER_LINK_AND_STATES(no_arg_method) \
+  for (vector<LinkState*>::iterator it = _states.begin(); \
+      it != _states.end(); \
+      ++it) \
+    (*it)->no_arg_method(); \
+  for (vector<TreeNode*>::iterator it = _kids.begin(); \
+      it != _kids.end(); \
+      ++it) \
+    (*it)->no_arg_method();
 
-void INode::reset() {
-  for (vector<LinkState*>::iterator it = _states.begin();
-      it != _states.end();
-      ++it)
-    (*it)->reset();
-  for (vector<TreeNode*>::iterator it = _kids.begin();
-      it != _kids.end();
-      ++it)
-    (*it)->reset();
-}
+void INode::mark() { OVER_LINK_AND_STATES(mark); }
+
+void INode::reset() { OVER_LINK_AND_STATES(reset); }
+
+void INode::save() { OVER_LINK_AND_STATES(save); }
+
+void INode::restore() { OVER_LINK_AND_STATES(restore); }
+
+void INode::resetPointer() { OVER_LINK_AND_STATES(resetPointer); }
+
+void INode::resetBuffer() { OVER_LINK_AND_STATES(resetBuffer); }
+
+void INode::advance() { OVER_LINK_AND_STATES(advance); }
+
 
 bool LNode::isLeafNode() const { return true; }
 
@@ -400,6 +403,12 @@ size_t LNode::getLeafIdentifier() const { return leafIdentity; }
 
 void LNode::mark() {}
 void LNode::reset() {}
+
+void LNode::save() {}
+void LNode::restore() {}
+void LNode::resetPointer() {}
+void LNode::resetBuffer() {}
+void LNode::advance() {}
 
 }
 }

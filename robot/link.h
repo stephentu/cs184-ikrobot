@@ -7,6 +7,7 @@
 #include <iostream>
 
 #include "context.h"
+#include "../util/buffer.h"
 
 namespace edu_berkeley_cs184 {
 namespace robot {
@@ -62,11 +63,31 @@ public:
 
   /** Mark a set point for this link. subsequent calls to reset will move the
    * link back to this exact state. calling mark overrides the previous set
-   * point */
+   * point. note that mark has NOTHING to do with the animation buffer */
   virtual void mark() = 0;
 
-  /** reset this link to marked positions */
+  /** reset this link to the previously MARKED position. has nothing to
+   * do with the animation buffer */
   virtual void reset() = 0;
+
+                          /* Animation */
+
+  /** Saves the current config to the animation buffer. does NOT affect
+   * mark */
+  virtual void save() = 0;
+
+  /** restores this link to the current state pointed to by the animation
+   * buffer pointer */
+  virtual void restore() = 0;
+
+  /** resets the animation buffer pointer to the beginning */
+	virtual void resetPointer() = 0;
+
+  /** clears the animation buffer and resets the pointer */
+	virtual void resetBuffer() = 0;
+
+	/** advance the animation buffer pointer */
+	virtual void advance() = 0;
 
 private:
   double _length;
@@ -107,6 +128,12 @@ public:
   void mark();
   void reset();
 
+  void save();
+  void restore();
+	void resetPointer();
+	void resetBuffer();
+	void advance();
+
 private:
   arma::vec3 axis; /* NORMALIZED axis of rotation */ 
   double angle; /* radians */
@@ -115,6 +142,8 @@ private:
   arma::vec3 oldAxis;
   double oldAngle;
   arma::vec3 oldBaselineDirection;
+
+  edu_berkeley_cs184::util::PlaybackBufferContainer3<arma::vec3, double, arma::vec3> _buf;
 
   size_t jointId;
 };
@@ -138,6 +167,12 @@ public:
 
   void mark();
   void reset();
+
+  void save();
+  void restore();
+	void resetPointer();
+	void resetBuffer();
+	void advance();
 
 private:
   arma::vec3 baselineDirection;
@@ -175,12 +210,20 @@ public:
   void mark();
   void reset();
 
+  void save();
+  void restore();
+	void resetPointer();
+	void resetBuffer();
+	void advance();
+
 private:
   arma::vec3 currentDirection; /** NORMALIZED */
   arma::mat44 currentTransform; /** local frame transform matrix */
 
   arma::vec3 oldDirection;
   arma::mat44 oldTransform;
+
+  edu_berkeley_cs184::util::PlaybackBufferContainer2<arma::vec3, arma::mat44> _buf;
 
   size_t jointId;
 

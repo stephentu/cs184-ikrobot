@@ -5,6 +5,7 @@
 #include <iostream>
 
 #include "tree.h"
+#include "../util/util.h"
 
 namespace edu_berkeley_cs184 {
 namespace robot {
@@ -56,10 +57,26 @@ public:
   inline void setRootPosition(const arma::vec3&);
 
   void toggleConstraint(const size_t);
+    
+                    /** Marking */
 
   inline void mark();
 
   inline void reset();
+
+                    /** Animation */
+
+  inline void save();
+
+  inline void restore();
+
+	inline void resetPointer();
+
+	inline void resetBuffer();
+
+	inline void advance();
+
+  inline bool isEndOfBuffer() const;
 
 private:
   arma::vec& getQDot(const arma::vec&, arma::vec&, arma::vec&);
@@ -85,6 +102,8 @@ private:
   SolnType _method;
 
   arma::vec3 _oldRootPosition;
+
+  edu_berkeley_cs184::util::PlaybackBuffer<arma::vec3> _buf;
 };
 
 inline size_t LinkedTreeRobot::getNumJoints() const {
@@ -114,6 +133,35 @@ inline void LinkedTreeRobot::mark() {
 inline void LinkedTreeRobot::reset() { 
   _root->reset(); 
   _rootPosition = _oldRootPosition;
+}
+
+inline void LinkedTreeRobot::save() { 
+  _root->save();
+  _buf.append(_rootPosition);
+}
+
+inline void LinkedTreeRobot::restore() { 
+  _root->restore();
+  _rootPosition = _buf.getCurrent();
+}
+
+inline void LinkedTreeRobot::resetPointer() { 
+  _root->resetPointer();
+  _buf.resetPointer();
+}
+
+inline void LinkedTreeRobot::resetBuffer() { 
+  _root->resetBuffer();
+  _buf.resetBuffer();
+}
+
+inline void LinkedTreeRobot::advance() { 
+  _root->advance();
+  _buf.advance();
+}
+
+inline bool LinkedTreeRobot::isEndOfBuffer() const { 
+  return _buf.isEndOfBuffer();
 }
 
 }

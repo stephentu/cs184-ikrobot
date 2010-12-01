@@ -95,9 +95,23 @@ public:
 
   virtual void renderTree(Context&) const = 0;
 
+                    /** Marking/reseting */
+
   virtual void mark() = 0;
 
   virtual void reset() = 0;
+
+                    /** Animation */
+
+  virtual void save() = 0;
+
+  virtual void restore() = 0;
+
+	virtual void resetPointer() = 0;
+
+	virtual void resetBuffer() = 0;
+
+	virtual void advance() = 0;
 
   /** builds a context for THIS node */
   Context& getContextForNode(Context&);
@@ -171,6 +185,11 @@ public:
   size_t getLeafIdentifier() const;
   void mark();
   void reset();
+  void save();
+  void restore();
+	void resetPointer();
+	void resetBuffer();
+	void advance();
 private:
   std::vector<LinkState*> _states;
   std::vector<TreeNode*> _kids;
@@ -199,6 +218,11 @@ public:
   size_t getLeafIdentifier() const;
   void mark();
   void reset();
+  void save();
+  void restore();
+	void resetPointer();
+	void resetBuffer();
+	void advance();
 private:
   size_t leafIdentity;
 };
