@@ -53,12 +53,14 @@ public:
 
   inline void setMethod(const SolnType);
 
+  inline void setRootPosition(const arma::vec3&);
+
   void toggleConstraint(const size_t);
 
 private:
   arma::vec& getQDot(const arma::vec&, arma::vec&, arma::vec&);
 
-  const arma::vec3 _rootPosition;
+  arma::vec3 _rootPosition;
   TreeNode* _root;
 
   // computed from _root
@@ -91,6 +93,11 @@ inline SolnType LinkedTreeRobot::getMethod() const { return _method; }
 inline void LinkedTreeRobot::setMethod(const SolnType _t) { 
   std::cout << "Setting method to: " << _t << std::endl;
   _method = _t; 
+}
+
+inline void LinkedTreeRobot::setRootPosition(const arma::vec3& _p) { 
+  //std::cout << "Setting root position to: " << _p << std::endl;
+  _rootPosition = _p;
 }
 
 }

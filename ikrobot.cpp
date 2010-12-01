@@ -266,7 +266,7 @@ static unsigned int activeTarget = 0;
 static float activeTargetZBuf = 0.0;
 
 static void innerNodeClicked(size_t idx, int x, int y) {
-  //cout << "inner node: " << (activeTarget-targets.size()) << endl;
+  cout << "inner node: " << (activeTarget-targets.size()) << endl;
   robot->toggleConstraint(idx);
 }
 
@@ -314,15 +314,19 @@ static void mouseClicked(int button, int state, int x, int y) {
 
 static void mouseDragged(int x, int y) {
   if (LEFT_DOWN_CLICK && hasActiveTarget) {
+
     if (activeTarget < targets.size()) {
       //cout << "moueDragged: " << x << ", " << y << endl;
-      vec3 pos = getWorldSpacePos(x, y, activeTargetZBuf);
       //cout << pos << endl;
+      vec3 pos = getWorldSpacePos(x, y, activeTargetZBuf);
       targets[activeTarget] = pos;
-
-      //robot->solveIKWithConstraints(flattenVector(targets));
-      robot->solveIK(flattenVector(targets));
-    } 
+      robot->solveIKWithConstraints(flattenVector(targets));
+      //robot->solveIK(flattenVector(targets));
+    } else if (activeTarget == targets.size()) { // HACK: the root inner node is always the first node after the effectors
+      vec3 pos = getWorldSpacePos(x, y, activeTargetZBuf);
+      robot->setRootPosition(pos);
+      robot->solveIKWithConstraints(flattenVector(targets));
+    }
   }
 }
 
