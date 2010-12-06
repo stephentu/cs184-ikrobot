@@ -47,9 +47,17 @@ void Context::pushContext(const vec3& newPosition,
   _transforms.push(rotation_matrix(thx, thy, thz) * _transforms.top());
 }
 
+/** Push a new context of a new position + an arbitrary rotation matrix */
 void Context::pushContext(const vec3& pos, const mat44& trfm) {
   _positions.push(pos);
   _transforms.push(trfm);
+}
+
+/** Push a new context of a new position + I4 rotation matrix */
+void Context::pushContext(const vec3& pos) {
+	mat44 I4;
+	I4.eye();
+	pushContext(pos, I4);
 }
 
 void Context::popContext() {

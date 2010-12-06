@@ -15,6 +15,7 @@
 #include "robot/robot.h"
 #include "robot/tree.h"
 #include "util/util.h"
+#include "util/glutil.h"
 
 using namespace std;
 using namespace arma;
@@ -172,7 +173,7 @@ static inline vec3 getWorldSpacePos(int x, int y, double zbuf) {
 }
 
 static inline void writeString(void *font, const char *str, float x, float y) {
-  glRasterPos3d(x, y, 0.0f);
+  glWindowPos2f(x, y);
   const char *p = &str[0];
   while (*p) glutBitmapCharacter(font, *p++);
 }
@@ -215,12 +216,13 @@ static void display() {
       drawSphere(nodePositions[i], 0.08);
     }
   } else { // render everything
-    if (!isPlayback)
+    if (!isPlayback) {
+      // only draw target positions if we're not in playback mode
       for (size_t i = 0; i < targets.size(); i++) {
         glColor3f(1.0, 0.0, 0.0);
         drawSphere(targets[i], 0.1);
       }
-    else if (isPlayback && !robot->isEndOfBuffer()) { // if we are in playback and there are contents in the buffer
+    } else if (isPlayback && !robot->isEndOfBuffer()) { // if we are in playback and there are contents in the buffer
       robot->restore(); // restore robot to next animation frame
       robot->getEffectorPositions(targets); // reset effectors
       robot->advance(); // push frame pointer forward
@@ -230,13 +232,18 @@ static void display() {
     if (isPlayback) { 
       // write progress status to lower right corner of screen
       const double status = (((double)robot->bufferPos()) / ((double)robot->bufferSize())) * 100.0;
-      char text[7]; // xxx.x%
-      snprintf(text, sizeof(text), "%.1f%%", status);
-      writeString(textFont, text, 2.0, -2.0); // TODO: fix hardcoded positions
+      char text[40]; // xxx.x% (4294967295/4294967295) - 30 FPS
+      snprintf(text, sizeof(text), "%.1f%% (%d/%d) - %d FPS", status, robot->bufferPos(), robot->bufferSize(), playbackFps);
+      writeString(textFont, text, 15, 15); // TODO: a bit hacky with window coordinates...
 
       // impose animation time delay
       const double secPerFrame = 1.0 / ((double)playbackFps);
       msleep((long)(secPerFrame * 1000.0));
+    } else {
+      // notify the number of elements in the animation buffer
+      char text[28]; // "Saved keyframes: " + 4294967295
+      snprintf(text, sizeof(text), "Saved keyframes: %d", robot->bufferSize()); 
+      writeString(textFont, text, 15, 15);
     }
   }
 
@@ -497,37 +504,53 @@ int main(int argc, char **argv) {
 
   // humanoid
 
+  //TreeNode *root = new INode(
+  //  makeVector<LinkState*>(4, 
+  //    new AxisBallAndSocketJoint(1.0, makeVec3(1, 0, 0)),
+  //    new AxisBallAndSocketJoint(0.5, makeVec3(0, 1, 0)),
+  //    new AxisBallAndSocketJoint(1.0, makeVec3(-1, 0, 0)),
+  //    new AxisBallAndSocketJoint(2.0, makeVec3(0, -1, 0))
+  //  ),
+  //  makeVector<TreeNode*>(4,
+  //    new INode(
+  //      makeVector<LinkState*>(1, new RotationJoint(0.8, zhat, makeVec3(0, -1, 0))),
+  //      makeVector<TreeNode*>(1, new LNode())
+  //    ),
+  //    new LNode(),
+  //    new INode(
+  //      makeVector<LinkState*>(1, new RotationJoint(0.8, zhat, makeVec3(0, -1, 0))),
+  //      makeVector<TreeNode*>(1, new LNode())
+  //    ),
+  //    new INode(
+  //      makeVector<LinkState*>(2, 
+  //        new AxisBallAndSocketJoint(1.2, makeVec3(1, 0, 0)),
+  //        new AxisBallAndSocketJoint(1.2, makeVec3(-1, 0, 0))
+  //      ),
+  //      makeVector<TreeNode*>(2, 
+  //        new INode(
+  //          makeVector<LinkState*>(1, new RotationJoint(0.8, zhat, makeVec3(0, -1, 0))),
+  //          makeVector<TreeNode*>(1, new LNode())
+  //        ),
+  //        new INode(
+  //          makeVector<LinkState*>(1, new RotationJoint(0.8, zhat, makeVec3(0, -1, 0))),
+  //          makeVector<TreeNode*>(1, new LNode())
+  //        )
+  //      )
+  //    )
+  //  )
+  //);
+
   TreeNode *root = new INode(
-    makeVector<LinkState*>(4, 
-      new AxisBallAndSocketJoint(1.0, makeVec3(1, 0, 0)),
-      new AxisBallAndSocketJoint(0.5, makeVec3(0, 1, 0)),
-      new AxisBallAndSocketJoint(1.0, makeVec3(-1, 0, 0)),
-      new AxisBallAndSocketJoint(2.0, makeVec3(0, -1, 0))
+    makeVector<LinkState*>(1,
+      new TranslationJoint(1.0, makeVec3(1, 0, 0))
     ),
-    makeVector<TreeNode*>(4,
+    makeVector<TreeNode*>(1,
       new INode(
-        makeVector<LinkState*>(1, new RotationJoint(0.8, zhat, makeVec3(0, -1, 0))),
-        makeVector<TreeNode*>(1, new LNode())
-      ),
-      new LNode(),
-      new INode(
-        makeVector<LinkState*>(1, new RotationJoint(0.8, zhat, makeVec3(0, -1, 0))),
-        makeVector<TreeNode*>(1, new LNode())
-      ),
-      new INode(
-        makeVector<LinkState*>(2, 
-          new AxisBallAndSocketJoint(1.2, makeVec3(1, 0, 0)),
-          new AxisBallAndSocketJoint(1.2, makeVec3(-1, 0, 0))
+        makeVector<LinkState*>(1,
+          new AxisBallAndSocketJoint(1.0, makeVec3(0, 1, 0))
         ),
-        makeVector<TreeNode*>(2, 
-          new INode(
-            makeVector<LinkState*>(1, new RotationJoint(0.8, zhat, makeVec3(0, -1, 0))),
-            makeVector<TreeNode*>(1, new LNode())
-          ),
-          new INode(
-            makeVector<LinkState*>(1, new RotationJoint(0.8, zhat, makeVec3(0, -1, 0))),
-            makeVector<TreeNode*>(1, new LNode())
-          )
+        makeVector<TreeNode*>(1,
+          new LNode()
         )
       )
     )

@@ -22,19 +22,31 @@ public:
   /** length of joint */
   inline double getLength() const;
 
+  /** set length */
+  inline void setLength(const double);
+
   /** Given a context, compute the GLOBAL endpoint of this joint */
   inline arma::vec3 getEndpoint(const Context&) const;
 
   /** Degrees of freedom */
   virtual size_t dof() const = 0;
 
-  /** For the i-th DOF, return the rotation axis given a context, desired
-   * position, and current effector position.
-   * DOF must be a valid DOF (indexed from zero). */
-  virtual arma::vec3 getRotationAxis(const size_t, 
-                                     const Context&, 
-                                     const arma::vec3&,
-                                     const arma::vec3&) const = 0;
+  /** Compute all jacobian entries */
+  virtual void computeJacobianEntries(arma::mat&, /* The jacobian */
+                                      arma::vec&, /* The state matrix */ 
+                                      const size_t, /* Effector ID */
+                                      const Context&, /* ctx */
+                                      const arma::vec3&, /* desired effector pos */
+                                      const arma::vec3&, /* current effector pos */
+                                      const arma::vec3& /* current vector from origin TO effector */) const = 0;
+
+  ///** For the i-th DOF, return the rotation axis given a context, desired
+  // * position, and current effector position.
+  // * DOF must be a valid DOF (indexed from zero). */
+  //virtual arma::vec3 getRotationAxis(const size_t, 
+  //                                   const Context&, 
+  //                                   const arma::vec3&,
+  //                                   const arma::vec3&) const = 0;
 
   /** what NORMALIZED direction is the link pointing in, given a context and applying
    * this link's rotations?  */
@@ -95,6 +107,8 @@ private:
 
 inline double LinkState::getLength() const { return _length; }
 
+inline void LinkState::setLength(const double _l) { _length = _l; }
+
 inline arma::vec3 LinkState::getEndpoint(const Context& ctx) const {
   // step 1: rotate baselineDirection by angle degrees along axis vector (in
   // right hand rule sense)
@@ -113,10 +127,17 @@ public:
   RotationJoint(const double, const arma::vec3&, const arma::vec3&);
   
   size_t dof() const;
-  arma::vec3 getRotationAxis(const size_t, 
-                             const Context&, 
-                             const arma::vec3&,
-                             const arma::vec3&) const; 
+  void computeJacobianEntries(arma::mat&,
+                              arma::vec&,
+                              const size_t,
+                              const Context&,
+                              const arma::vec3&,
+                              const arma::vec3&,
+                              const arma::vec3&) const;
+  //arma::vec3 getRotationAxis(const size_t, 
+  //                           const Context&, 
+  //                           const arma::vec3&,
+  //                           const arma::vec3&) const; 
   arma::vec3 getRotatedDirection(const Context&) const; 
   std::vector<size_t> getJointIdentifiers() const;
   size_t assignJointIndicies(const size_t);
@@ -153,10 +174,17 @@ public:
   EulerBallAndSocketJoint(const double, const arma::vec3&);
                   
   size_t dof() const;
-  arma::vec3 getRotationAxis(const size_t, 
-                             const Context&, 
-                             const arma::vec3&,
-                             const arma::vec3&) const; 
+  void computeJacobianEntries(arma::mat&,
+                              arma::vec&,
+                              const size_t,
+                              const Context&,
+                              const arma::vec3&,
+                              const arma::vec3&,
+                              const arma::vec3&) const;
+  //arma::vec3 getRotationAxis(const size_t, 
+  //                           const Context&, 
+  //                           const arma::vec3&,
+  //                           const arma::vec3&) const; 
   arma::vec3 getRotatedDirection(const Context&) const; 
   std::vector<size_t> getJointIdentifiers() const;
   size_t assignJointIndicies(const size_t);
@@ -195,10 +223,17 @@ public:
   AxisBallAndSocketJoint(const double, const arma::vec3&);
 
   size_t dof() const;
-  arma::vec3 getRotationAxis(const size_t, 
-                             const Context&, 
-                             const arma::vec3&,
-                             const arma::vec3&) const; 
+  void computeJacobianEntries(arma::mat&,
+                              arma::vec&,
+                              const size_t,
+                              const Context&,
+                              const arma::vec3&,
+                              const arma::vec3&,
+                              const arma::vec3&) const;
+  //arma::vec3 getRotationAxis(const size_t, 
+  //                           const Context&, 
+  //                           const arma::vec3&,
+  //                           const arma::vec3&) const; 
   arma::vec3 getRotatedDirection(const Context&) const; 
   std::vector<size_t> getJointIdentifiers() const;
   size_t assignJointIndicies(const size_t);
@@ -227,6 +262,49 @@ private:
 
   size_t jointId;
 
+};
+
+class TranslationJoint : public LinkState {
+public:
+  TranslationJoint(const double, const arma::vec3&);
+
+  size_t dof() const;
+  void computeJacobianEntries(arma::mat&,
+                              arma::vec&,
+                              const size_t,
+                              const Context&,
+                              const arma::vec3&,
+                              const arma::vec3&,
+                              const arma::vec3&) const;
+  //arma::vec3 getRotationAxis(const size_t, 
+  //                           const Context&, 
+  //                           const arma::vec3&,
+  //                           const arma::vec3&) const; 
+  arma::vec3 getRotatedDirection(const Context&) const; 
+  std::vector<size_t> getJointIdentifiers() const;
+  size_t assignJointIndicies(const size_t);
+  Context& pushContext(Context&) const;
+  void updateThetas(const arma::vec&, const arma::vec&);
+  void setThetas(const arma::vec&, const arma::vec&);
+  void getBasis(const Context&, arma::vec3&, arma::vec3&, arma::vec3&) const;
+
+  void mark();
+  void reset();
+
+  void save();
+  void restore();
+	void resetPointer();
+	void resetBuffer();
+	void advance();
+
+private:
+  arma::vec3 _fixedAxis; /** NORMALIZED */
+
+  edu_berkeley_cs184::util::PlaybackBuffer<double> _buf;
+
+  double oldLength;
+
+  size_t jointId;
 };
 
 

@@ -79,19 +79,28 @@ mat& LinkedTreeRobot::computeJacobian(const vec& desired, mat& m, vec& axes) con
       assert(jointIds.size() == linkState->dof());
       ctx.popContext();
       vec3 direction = effectorPos - ctx.getCurrentOrigin();
+
       //cout << "dof: " << linkState->dof() << endl;
       //cout << "direction: " << direction << endl;
-      for (size_t jointIdx = 0; jointIdx < linkState->dof(); jointIdx++) {
-        size_t jointId = jointIds[jointIdx];
-        //cout << "jointId: " << jointId << endl;
-        vec3 rotAxis = linkState->getRotationAxis(jointIdx, ctx, desired.rows(3 * effectorId, 3 * effectorId + 2), effectorPos);
-        //cout << "rotAxis: " << endl << rotAxis << endl;
-        axes.rows(3 * jointId, 3 * jointId + 2) = rotAxis;
-        vec3 jacobianEntry = cross(rotAxis, direction); 
-        m(3 * effectorId,     jointId) = jacobianEntry[0];
-        m(3 * effectorId + 1, jointId) = jacobianEntry[1];
-        m(3 * effectorId + 2, jointId) = jacobianEntry[2];
-      }
+      //for (size_t jointIdx = 0; jointIdx < linkState->dof(); jointIdx++) {
+      //  size_t jointId = jointIds[jointIdx];
+      //  //cout << "jointId: " << jointId << endl;
+      //  vec3 rotAxis = linkState->getRotationAxis(jointIdx, ctx, desired.rows(3 * effectorId, 3 * effectorId + 2), effectorPos);
+      //  //cout << "rotAxis: " << endl << rotAxis << endl;
+      //  axes.rows(3 * jointId, 3 * jointId + 2) = rotAxis;
+      //  vec3 jacobianEntry = cross(rotAxis, direction); 
+      //  m(3 * effectorId,     jointId) = jacobianEntry[0];
+      //  m(3 * effectorId + 1, jointId) = jacobianEntry[1];
+      //  m(3 * effectorId + 2, jointId) = jacobianEntry[2];
+      //}
+      
+      linkState->computeJacobianEntries(m,
+                                        axes,
+                                        effectorId,
+                                        ctx,
+                                        desired.rows(3 * effectorId, 3 * effectorId + 2),
+                                        effectorPos,
+                                        direction);
       prevNode = curNode;
       curNode  = curNode->getParent();
     }
