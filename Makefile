@@ -19,7 +19,7 @@ clean:
 context.o: robot/context.cpp robot/context.h util/util.h
 	$(CXX) -c $(CXXFLAGS) -o $@ $<
 
-ikrobot.o: ikrobot.cpp util/util.h
+ikrobot.o: ikrobot.cpp robot/robot.h util/util.h
 	$(CXX) -c $(CXXFLAGS) -o $@ $<
 
 link.o: robot/link.cpp robot/link.h util/util.h util/buffer.h

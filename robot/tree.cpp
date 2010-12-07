@@ -17,7 +17,7 @@ using namespace edu_berkeley_cs184::util;
 namespace edu_berkeley_cs184 {
 namespace robot {
 
-TreeNode::TreeNode() { _parent = NULL; _fixed = false; }
+TreeNode::TreeNode() { _parent = NULL; }
 TreeNode::~TreeNode() {}
 
 vec3 TreeNode::getGlobalPosition(const vec3& rootPoint) {
@@ -180,6 +180,18 @@ vector<TreeNode*>& INode::gatherNodes(vector<TreeNode*>& buffer) {
   return buffer;
 }
 
+vector<LinkState*>& INode::gatherLinkStates(vector<LinkState*>& buffer) {
+  for (vector<LinkState*>::iterator it = _states.begin();
+      it != _states.end();
+      ++it)
+    buffer.push_back(*it);
+  for (vector<TreeNode*>::iterator it = _kids.begin(); 
+      it != _kids.end();
+      ++it)
+    (*it)->gatherLinkStates(buffer);
+  return buffer;
+}
+
 void INode::updateThetas(const vec& deltas, const vec& axes) {
   for (size_t i = 0; i < _states.size(); i++)
     _states[i]->updateThetas(deltas, axes);
@@ -292,8 +304,8 @@ void INode::renderTree(Context& ctx) const {
 
     if (isRootNode())
       glColor3d(0.0, 0.0, 0.8);
-    else if (isFixed())
-      glColor3d(0.0, 1.0, 1.0); 
+    //else if (isFixed())
+    //  glColor3d(0.0, 1.0, 1.0); 
     else
       glColor3d(0.0, 0.0, 1.0);
 
@@ -392,6 +404,10 @@ vector<TreeNode*>& LNode::gatherInnerNodes(vector<TreeNode*>& buffer) {
 
 vector<TreeNode*>& LNode::gatherNodes(vector<TreeNode*>& buffer) {
   buffer.push_back(this);
+  return buffer;
+}
+
+vector<LinkState*>& LNode::gatherLinkStates(vector<LinkState*>& buffer) {
   return buffer;
 }
 

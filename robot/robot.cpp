@@ -80,20 +80,6 @@ mat& LinkedTreeRobot::computeJacobian(const vec& desired, mat& m, vec& axes) con
       ctx.popContext();
       vec3 direction = effectorPos - ctx.getCurrentOrigin();
 
-      //cout << "dof: " << linkState->dof() << endl;
-      //cout << "direction: " << direction << endl;
-      //for (size_t jointIdx = 0; jointIdx < linkState->dof(); jointIdx++) {
-      //  size_t jointId = jointIds[jointIdx];
-      //  //cout << "jointId: " << jointId << endl;
-      //  vec3 rotAxis = linkState->getRotationAxis(jointIdx, ctx, desired.rows(3 * effectorId, 3 * effectorId + 2), effectorPos);
-      //  //cout << "rotAxis: " << endl << rotAxis << endl;
-      //  axes.rows(3 * jointId, 3 * jointId + 2) = rotAxis;
-      //  vec3 jacobianEntry = cross(rotAxis, direction); 
-      //  m(3 * effectorId,     jointId) = jacobianEntry[0];
-      //  m(3 * effectorId + 1, jointId) = jacobianEntry[1];
-      //  m(3 * effectorId + 2, jointId) = jacobianEntry[2];
-      //}
-      
       linkState->computeJacobianEntries(m,
                                         axes,
                                         effectorId,
@@ -110,51 +96,6 @@ mat& LinkedTreeRobot::computeJacobian(const vec& desired, mat& m, vec& axes) con
 
   return m;
 }
-
-mat& LinkedTreeRobot::computeConstraintJacobian(const vec& desired,
-                                                const vec& axes,
-                                                mat& m) const {
-
-  vector<TreeNode*> constraintNodes;
-  for (vector<TreeNode*>::const_iterator it = _allNodes.begin();
-      it != _allNodes.end();
-      ++it)
-    if ((*it)->isFixed())
-      constraintNodes.push_back(*it);
-
-  m.zeros(3 * constraintNodes.size(), _numJoints);
-
-  for (size_t idx = 0; idx < constraintNodes.size(); idx++) {
-    TreeNode *node = constraintNodes[idx];
-
-    Context ctx(_rootPosition);
-    node->getContextForNode(ctx);
-
-    vec3 currentPos = ctx.getCurrentOrigin();
-    vec3 constraintError = node->getFixedPosition() - currentPos;
-    vec3 dCdP = -2.0 * constraintError;
-
-    TreeNode *curNode = node;
-    while (!curNode->isRootNode()) {
-      //cout << "currentNode: " << curNode->getIdentifier() << endl;
-      LinkState* linkState = curNode->getLinkState();
-      vector<size_t> jointIds = linkState->getJointIdentifiers();
-      assert(jointIds.size() == linkState->dof());
-      ctx.popContext();
-      vec3 direction = currentPos - ctx.getCurrentOrigin();
-      for (size_t jointIdx = 0; jointIdx < linkState->dof(); jointIdx++) {
-        size_t jointId = jointIds[jointIdx];
-        vec3 rotAxis = axes.rows(3 * jointId, 3 * jointId + 2);
-        vec3 dPdq = cross(rotAxis, direction);
-        vec3 jacEntry = dCdP % dPdq;
-        m.submat(3 * idx, jointId, 3 * idx + 2, jointId) = jacEntry; 
-      }
-      curNode = curNode->getParent();
-    }
-  }
-  return m;
-}
-
 
 vec& LinkedTreeRobot::getEffectorPositions(vec& buffer) const {
   buffer.set_size(3 * _numEffectors);
@@ -255,18 +196,6 @@ void LinkedTreeRobot::renderRobot() const {
   _root->renderTree(ctx);
 }
 
-void LinkedTreeRobot::solveIK(const vec& desired) {
-  const double MAX_ITER = 100;
-  size_t itersFinished = 0;
-  const double TOL = 1e-3; 
-  vec deltaThetas;
-  do {
-    vec axes;
-    deltaThetas = computeDeltaThetas(desired, axes);
-    updateThetas(deltaThetas, axes);
-  } while (++itersFinished < MAX_ITER && norm(deltaThetas, 2) >= TOL);
-}
-
 static inline bool is_all_zeros(const mat& m) {
   for (mat::const_iterator it = m.begin();
       it != m.end(); ++it)
@@ -285,137 +214,142 @@ static inline mat truncate(const mat& m, const double threshold) {
   return mtrunc;
 }
 
-vec& LinkedTreeRobot::getQDot(const vec& desired, vec& qdot, vec& axes) {
-  vec P(3 * _numEffectors);
-  getEffectorPositions(P); // position of the effectors currently
+vec& LinkedTreeRobot::computeGradL(
+    vec& gradL, /** gradL */
+    vec& rotAxes, /** state vector */
+    const vec& desired, /* desired positions */
+    const vec& S, /* S */
+    const vec& lambda, /* lagrange multipliers */
+    const vector<LinkState*>& linkStates, /* all link states */
+    const size_t numConstraints
+  ) {
 
-  vec F = clamp(desired - P, 0.5);
+  assert(desired.n_elem == 3 * _numEffectors);
+  assert(S.n_elem == numConstraints);
+  assert(lambda.n_elem == numConstraints);
 
-  mat J;
-  computeJacobian(desired, J, axes);
+  vec q(3 * _numEffectors);
+  getEffectorPositions(q);
 
-  mat Jc;
-  //cout << "++ Going to compute constraint jacobian ++" << endl;
-  computeConstraintJacobian(desired, axes, Jc);
-  //cout << "++ Finished computed constraint jacobian ++" << endl;
-  //cout << "Jc:" << endl << Jc << endl;
+  vec e = clamp(desired - q, 0.5);
 
-  vec ga = trans(J) * F;
-  //cout << "ga:" << endl << ga << endl;
+  //cout << "desired: " << endl << desired << endl;
+  //cout << "q: " << endl << q << endl;
+  //cout << "S: " << endl << S << endl;
+  //cout << "lambda: " << endl << lambda << endl;
 
-  vec gc;
-  if (Jc.n_elem == 0 || is_all_zeros(Jc)) // no constraints, or all constraints OK
-    gc.zeros(ga.n_elem);
-  else {
-    vec b = -Jc * ga;
-    //cout << "b:" << endl << b << endl;
-    
-    mat JcT = trans(Jc);
+  mat J; // d(effectors)/dq
+  computeJacobian(desired, J, rotAxes);
+  //cout << "J: " << endl << J << endl;
 
-    mat A = Jc * JcT;
-    //cout << "A:" << endl << A << endl;
+  vec dLdq, dLds, dLdlambda;
+  //dLds = -2.0 * (lambda % S);
+  dLds.zeros(numConstraints);
+  dLdlambda.zeros(numConstraints);
 
-    vec d;
-    mat U, V;
-    if (!svd(U, d, V, A))
-      cerr << "could not compute SVD" << endl;
-
-    //cout << "U:" << endl << U << endl;
-    //cout << "V:" << endl << V << endl;
-    //cout << "d:" << endl << d << endl;
-
-    //vec lambda = V * inv(D) * trans(U) * b; // too naive
-
-    vec utb = trans(U) * b;
-
-    vec dinv_ut_b(d.n_elem);
-    dinv_ut_b.zeros();
-
-    for (size_t d_idx = 0; d_idx < d.n_elem; d_idx++) {
-      double elem = d[d_idx];
-      if (!double_equals(elem, 0.0))
-        dinv_ut_b[d_idx] = 1.0 / elem * utb[d_idx];
-    }
-
-    gc = JcT * (V * dinv_ut_b); // Jc^T * lambda
+  vec gradf;
+  gradf.zeros(_numJoints);
+  for (size_t i = 0; i < _numJoints; i++) {
+    //cout << "e % J.col(i)" << endl << (e % J.col(i)) << endl;
+    double x = -as_scalar(sum(e % J.col(i)));
+    //cout << "x = " << x << endl;
+    gradf(i) = x;
   }
 
-  qdot = ga + gc; // qdot
-  return qdot;
+  //cout << "grad F = " << endl << gradf << endl;
+
+  dLdq = gradf; // assumes grad(C(q)) == 0
+  size_t constraintIdx = 0;
+  for (vector<LinkState*>::const_iterator it = linkStates.begin();
+      it != linkStates.end();
+      ++it) {
+    LinkState *ls = *it;
+
+    Context ctx(_rootPosition);
+    vec constraints;
+    mat constraintsGrad;
+    vec jointIds, rotationAxes; // TODO: fill in 
+
+    jointIds.set_size(1);
+    assert(ls->dof() == 1);
+    jointIds[0] = ls->getJointIdentifiers()[0];
+
+    size_t thisNumConstraints = ls->numConstraints();
+    ls->getConstraintInfo(constraints, constraintsGrad, ctx, jointIds, rotationAxes);
+
+    //dLdlambda.rows(constraintIdx, constraintIdx + thisNumConstraints - 1) =
+    //  - 1.0 * ( (S.rows(constraintIdx, constraintIdx + thisNumConstraints - 1) %
+    //             S.rows(constraintIdx, constraintIdx + thisNumConstraints - 1)) +
+    //            constraints   
+    //          );
+
+    dLdlambda.rows(constraintIdx, constraintIdx + thisNumConstraints - 1) =
+      - constraints;
+
+    //cout << "constraints: " << endl << constraints << endl;
+    //cout << "constraintsGrad: " << endl << constraintsGrad << endl;
+
+    for (size_t constraintId = 0; constraintId < ls->numConstraints(); constraintId++) {
+      vec gradC = trans(constraintsGrad.row(constraintId));
+      double lambdai = dLdlambda(constraintIdx + constraintId);
+      //cout << "lambda_i: " << lambdai << endl;
+      //cout << "gradC: " << endl << gradC << endl;
+      //cout << "prod: " << (lambdai * gradC) << endl;
+      dLdq = dLdq - lambdai * gradC;
+    }
+
+    constraintIdx += thisNumConstraints;
+  }
+
+  gradL = join_cols(join_cols(dLdq, dLds), dLdlambda);
+  assert(gradL.n_elem ==  _numJoints + 2 * numConstraints);
+
+  //cout << "grad L = " << endl << gradL << endl;
+
+  return gradL;
 }
 
-#define SIMPLE_EULER 1
+void LinkedTreeRobot::solveIKGradientDescent(const vec& desired) {
+  // use lagrange function:
+  // L(q, s, lambda) = f(q) - lambda * (c(q) + s^2)
+  // find min L(q, s, lambda)
+  // f(q) = || desired - currentPositions(q) ||^2
 
-void LinkedTreeRobot::solveIKWithConstraints(const vec& desired) {
+  vector<LinkState*> linkStates;
+  _root->gatherLinkStates(linkStates);
 
-  assert(_numEffectors * 3 == desired.n_elem);
+  size_t numConstraints = 0;
+  for (vector<LinkState*>::iterator it = linkStates.begin();
+      it != linkStates.end();
+      ++it)
+    numConstraints += (*it)->numConstraints();
 
-  vec thisUpdate;
-  thisUpdate.zeros(_numJoints);
+  vec S, lambda, deltaS, deltaLambda, deltaThetas;
+  S.ones(numConstraints);
+  lambda.zeros(numConstraints);
+  deltaThetas.zeros(_numJoints);
 
-  const double MAX_ITER = 1000;
+  const double MAX_ITER = 100000000; 
   size_t itersFinished = 0;
-  const double TOL = 5e-4; // stopping condition for ||thisUpdate||
+  const double TOL = 1e-3;
+  const double STEP_SIZE = 0.0001;
 
-#if SIMPLE_EULER
-  double h = 0.01; // initial h
-#else
-  double h = 0.2; // initial h
-  const double EPS = 0.02; // upper bound for error produced per unit of t 
-#endif
-
-  bool redo = false;
-  //cout << "----" << endl;
+  vec axes, gradL;
   do {
-
-#if SIMPLE_EULER
-    vec curAxes, f_tn_yn;
-    getQDot(desired, f_tn_yn, curAxes); // f(t_n, y_n), fills curAxes
-    thisUpdate = h * f_tn_yn;
-    updateThetas(thisUpdate, curAxes); // push robot ahead
-#else
-    vec curAxes, f_tn_yn;
-    getQDot(desired, f_tn_yn, curAxes); // f(t_n, y_n), fills curAxes
-
-    vec alpha1 = h * f_tn_yn; // alpha1 = h f(t_n, y_n)
-
-    // alpha2 = h/2 f(t_n, y_n) + h/2 f(t_n + h/2, y_n + h/2 f(t_n, y_n))
-
-    vec temp_update = (h / 2.0) * f_tn_yn;
-    updateThetas(temp_update, curAxes); // shift robot
-      vec tempAxes, f_tn_mid;
-      getQDot(desired, f_tn_mid, tempAxes); // f(t_n + h/2, y_n + h/2 f(t_n, y_n))
-    updateThetas(-temp_update, curAxes); // unshift robot
-
-    vec alpha2 = temp_update + (h / 2.0) * f_tn_mid;
-
-    double r = norm(alpha1 - alpha2, 2);
-
-    if (r < EPS) { // accept A2 with y_{n+1} = 2 A2 - A1
-      thisUpdate = 2.0 * alpha2 - alpha1;
-      updateThetas(thisUpdate, curAxes); // push robot ahead
-      redo = false;
-    } else 
-      redo = true;
-
-    h = 0.9 * EPS / r * h; // update step size
-#endif
-
-  } while (++itersFinished < MAX_ITER && (redo || norm(thisUpdate, 2) >= TOL));
-  //cout << "Solution took " << itersFinished << " iterations" << endl
-  //      << "h = " << h << endl;
-  //cout << "----" << endl;
+    computeGradL(gradL, axes, desired, S, lambda, linkStates, numConstraints);
+    deltaThetas = - STEP_SIZE * gradL.rows(0, _numJoints - 1);
+    deltaS = - STEP_SIZE * gradL.rows(_numJoints, _numJoints + numConstraints - 1);
+    deltaLambda = - STEP_SIZE * gradL.rows(_numJoints + numConstraints, gradL.n_elem - 1);
+    updateThetas(deltaThetas, axes);
+    S += deltaS;
+    lambda += deltaLambda;
+  } while (++itersFinished < MAX_ITER && norm(gradL, 2) >= TOL);
+  cout << "Finished in " << itersFinished << " iterations" << endl;
 }
 
 void LinkedTreeRobot::toggleConstraint(const size_t idx) {
   assert(0 <= idx && idx < _allNodes.size());
-  //if (_allNodes[idx]->isLeafNode()) return;
-  if (_allNodes[idx]->isFixed()) 
-    _allNodes[idx]->setFixed(false);
-  else {
-    _allNodes[idx]->setFixed(true);
-    _allNodes[idx]->setFixedPosition(_allNodes[idx]->getGlobalPosition(_rootPosition));
-  }
+
 }
 
 

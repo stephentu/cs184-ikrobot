@@ -59,6 +59,8 @@ public:
    * using push_back to insert */
   virtual std::vector<TreeNode*>& gatherNodes(std::vector<TreeNode*>&) = 0;
 
+  virtual std::vector<LinkState*>& gatherLinkStates(std::vector<LinkState*>&) = 0;
+
   /** Returns the global position of THIS node, given the input position for
    * the ROOT node. If this node IS the root node, then the same position will
    * be returned. */
@@ -113,23 +115,15 @@ public:
 
 	virtual void advance() = 0;
 
+                    /** Constraints */
+
   /** builds a context for THIS node */
   Context& getContextForNode(Context&);
-
-  inline bool isFixed() const;
-
-  inline void setFixed(const bool);
-
-  inline arma::vec3 getFixedPosition() const;
-
-  inline void setFixedPosition(const arma::vec3&);
 
 protected:
   TreeNode* _parent;
   size_t idx;
   size_t identity;
-  bool _fixed; // is there a positional constraint
-  arma::vec3 _position; // what is the fixed position constraint?
 };
 
 inline bool TreeNode::isRootNode() const { return _parent == NULL; }
@@ -152,14 +146,6 @@ inline LinkState* TreeNode::getLinkState() const {
 
 inline size_t TreeNode::getIdentifier() const { return identity; }
 
-inline bool TreeNode::isFixed() const { return _fixed; }
-
-inline void TreeNode::setFixed(const bool _f) { _fixed = _f; }
-
-inline arma::vec3 TreeNode::getFixedPosition() const { return _position; }
-
-inline void TreeNode::setFixedPosition(const arma::vec3& _p) { _position = _p; }
-
 class INode : public TreeNode {
 public:
   INode(const std::vector<LinkState*>&, const std::vector<TreeNode*>&);
@@ -179,6 +165,7 @@ public:
   std::vector<TreeNode*>& gatherLeaves(std::vector<TreeNode*>&);
   std::vector<TreeNode*>& gatherInnerNodes(std::vector<TreeNode*>&);
   std::vector<TreeNode*>& gatherNodes(std::vector<TreeNode*>&);
+  std::vector<LinkState*>& gatherLinkStates(std::vector<LinkState*>&);
   void updateThetas(const arma::vec&, const arma::vec&);
   void setThetas(const arma::vec&, const arma::vec&);
   void renderTree(Context&) const;
@@ -212,6 +199,7 @@ public:
   std::vector<TreeNode*>& gatherLeaves(std::vector<TreeNode*>&);
   std::vector<TreeNode*>& gatherInnerNodes(std::vector<TreeNode*>&);
   std::vector<TreeNode*>& gatherNodes(std::vector<TreeNode*>&);
+  std::vector<LinkState*>& gatherLinkStates(std::vector<LinkState*>&);
   void updateThetas(const arma::vec&, const arma::vec&);
   void setThetas(const arma::vec&, const arma::vec&);
   void renderTree(Context&) const;

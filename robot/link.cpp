@@ -46,14 +46,6 @@ void RotationJoint::computeJacobianEntries(mat& jacobian,
   jacobian(3 * effectorId + 2, jointId) = jacobianEntry[2];
 }
 
-//vec3 RotationJoint::getRotationAxis(const size_t dof, 
-//                                    const Context& ctx,
-//                                    const vec3& desired,
-//                                    const vec3& effector) const {
-//  assert(dof == 0);
-//  return ctx.getVectorInContext(axis);
-//}
-
 vec3 RotationJoint::getRotatedDirection(const Context& ctx) const {
   //cout << "axis: " << ctx.getVectorInContext(axis) << endl;
   return rotate_expmap(
@@ -93,6 +85,22 @@ void RotationJoint::getBasis(const Context& ctx, vec3& u, vec3& v, vec3& n) cons
   normalize_vec3(v);
 }
 
+void RotationJoint::toggleConstraint() { TODO; }
+
+void RotationJoint::getConstraintInfo(
+      arma::vec& constraints,
+      arma::mat& constraintGradient,
+      const Context& ctx,
+      const arma::vec& jointIds,
+      const arma::vec& rotationAxes
+    ) {
+  TODO;
+}
+
+size_t RotationJoint::numConstraints() const {
+  return 0;
+}
+
 void RotationJoint::mark() {
   oldAxis              = axis;
   oldAngle             = angle;
@@ -119,99 +127,6 @@ void RotationJoint::restore() {
 void RotationJoint::resetPointer() { _buf.resetPointer(); }
 void RotationJoint::resetBuffer() { _buf.resetBuffer(); }
 void RotationJoint::advance() { _buf.advance(); }
-
-EulerBallAndSocketJoint::EulerBallAndSocketJoint(const double _l, const vec3& _baseline) :
-  LinkState(_l), baselineDirection(_baseline), thetax(0.0), thetay(0.0), thetaz(0.0) {
-
-  normalize_vec3(baselineDirection);
-
-  mark();
-}
-
-size_t EulerBallAndSocketJoint::dof() const { return 3; }
-
-void EulerBallAndSocketJoint::computeJacobianEntries(mat& jacobian,
-                                                     vec& state,
-                                                     const size_t effectorId,
-                                                     const Context& ctx,
-                                                     const vec3& desired,
-                                                     const vec3& effector,
-                                                     const vec3& direction) const {
-  TODO;
-}
-
-//vec3 EulerBallAndSocketJoint::getRotationAxis(const size_t dof, 
-//                                              const Context& ctx,
-//                                              const vec3& desired,
-//                                              const vec3& effector) const {
-//  assert(0 <= dof && dof < 3);
-//  switch (dof) {
-//  case 0:
-//    return makeVec3(1, 0, 0);
-//  case 1:
-//    return makeVec3(0, 1, 0);
-//  case 2:
-//    return makeVec3(0, 0, 1);
-//  default:
-//    throw runtime_error("illegal DOF");
-//  }
-//}
-
-vec3 EulerBallAndSocketJoint::getRotatedDirection(const Context& ctx) const {
-  return rotate_euler(ctx.getVectorInContext(baselineDirection), thetax, thetay, thetaz);
-}
-
-vector<size_t> EulerBallAndSocketJoint::getJointIdentifiers() const { return jointIds; }
-
-size_t EulerBallAndSocketJoint::assignJointIndicies(const size_t startIdx) {
-  jointIds.push_back(startIdx);
-  jointIds.push_back(startIdx + 1);
-  jointIds.push_back(startIdx + 2);
-  return 3;
-}
-
-Context& EulerBallAndSocketJoint::pushContext(Context& ctx) const {
-  ctx.pushContext(getEndpoint(ctx), thetax, thetay, thetaz);
-  return ctx;
-}
-
-void EulerBallAndSocketJoint::updateThetas(const vec& deltas, const vec& axes) {
-  thetax += deltas(jointIds[0]);
-  thetay += deltas(jointIds[1]);
-  thetaz += deltas(jointIds[2]);
-}
-
-void EulerBallAndSocketJoint::setThetas(const vec& deltas, const vec& axes) {
-  thetax = deltas(jointIds[0]);
-  thetay = deltas(jointIds[1]);
-  thetaz = deltas(jointIds[2]);
-}
-
-void EulerBallAndSocketJoint::getBasis(const Context& ctx, vec3& u, vec3& v, vec3& n) const {
-  n = getRotatedDirection(ctx);
-  u = cross(makeVec3(0, 1, 0), n); // TODO: this might be degenerate sometimes
-  v = cross(n, u);
-}
-
-void EulerBallAndSocketJoint::mark() {
-  oldThetax = thetax;
-  oldThetay = thetay;
-  oldThetaz = thetaz;
-}
-
-void EulerBallAndSocketJoint::reset() {
-  thetax = oldThetax;
-  thetay = oldThetay;
-  thetaz = oldThetaz;
-}
-
-
-
-void EulerBallAndSocketJoint::save() { TODO; }
-void EulerBallAndSocketJoint::restore() { TODO; }
-void EulerBallAndSocketJoint::resetPointer() { TODO; }
-void EulerBallAndSocketJoint::resetBuffer() { TODO; }
-void EulerBallAndSocketJoint::advance() { TODO; }
 
 AxisBallAndSocketJoint::AxisBallAndSocketJoint(const double _l, const vec3& startingDir) 
   : LinkState(_l), currentDirection(startingDir) {
@@ -244,20 +159,6 @@ void AxisBallAndSocketJoint::computeJacobianEntries(mat& jacobian,
   jacobian(3 * effectorId + 1, jointId) = jacobianEntry[1];
   jacobian(3 * effectorId + 2, jointId) = jacobianEntry[2];
 }
-
-//vec3 AxisBallAndSocketJoint::getRotationAxis(const size_t dof, 
-//                                             const Context& ctx, 
-//                                             const vec3& desiredPoint,
-//                                             const vec3& effectorPoint) const {
-//  assert(dof == 0);
-//
-//  if (vec3_equals(desiredPoint, effectorPoint))
-//    return makeVec3(1, 0, 0);
-//
-//  vec3 rotAxis = cross(effectorPoint - ctx.getCurrentOrigin(),
-//                       desiredPoint - ctx.getCurrentOrigin());
-//  return normalize_vec3(rotAxis);
-//}
 
 vec3 AxisBallAndSocketJoint::getRotatedDirection(const Context& ctx) const {
   return ctx.getVectorInContext(currentDirection);
@@ -301,6 +202,22 @@ void AxisBallAndSocketJoint::getBasis(const Context& ctx, vec3& u, vec3& v, vec3
   normalize_vec3(u);
   normalize_vec3(v);
   normalize_vec3(n);
+}
+
+void AxisBallAndSocketJoint::toggleConstraint() { TODO; }
+
+void AxisBallAndSocketJoint::getConstraintInfo(
+      arma::vec& constraints,
+      arma::mat& constraintGradient,
+      const Context& ctx,
+      const arma::vec& jointIds,
+      const arma::vec& rotationAxes
+    ) {
+  TODO;
+}
+
+size_t AxisBallAndSocketJoint::numConstraints() const {
+  return 0;
 }
 
 void AxisBallAndSocketJoint::mark() {
@@ -387,6 +304,28 @@ void TranslationJoint::getBasis(const Context& ctx, vec3& u, vec3& v, vec3& n) c
   normalize_vec3(u);
   normalize_vec3(v);
   normalize_vec3(n);
+}
+
+void TranslationJoint::toggleConstraint() {
+
+}
+
+void TranslationJoint::getConstraintInfo(
+      arma::vec& constraints,
+      arma::mat& constraintGradient,
+      const Context& ctx,
+      const arma::vec& jointIds,
+      const arma::vec& rotationAxes
+    ) {
+  constraints.set_size(1);
+  double x = getLength() - 1.0;
+  constraints[0] = x * x;
+  constraintGradient.zeros(1, jointIds.n_elem);
+  constraintGradient[jointId] = 2.0 * x;
+}
+
+size_t TranslationJoint::numConstraints() const {
+  return 1;
 }
 
 void TranslationJoint::mark() {

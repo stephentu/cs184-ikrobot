@@ -34,18 +34,10 @@ public:
   std::vector<arma::vec3>& getNodePositions(std::vector<arma::vec3>&) const;
 
   arma::mat& computeJacobian(const arma::vec&, arma::mat&, arma::vec&) const;
-  arma::mat& computeConstraintJacobian(const arma::vec&, const arma::vec&, arma::mat&) const;
   arma::vec computeDeltaThetas(const arma::vec&, arma::vec&) const;
   void updateThetas(const arma::vec&, const arma::vec&);
 
-  /** Main IK method- given an input of desired positions, update the robot to
-   * try to match this input */
-  void solveIK(const arma::vec&);
-
-  /** Main IK with constraints method. same input as solveIK. uses completely
-   * different algorithm (iterative jacobian transpose with lagrange
-   * multipliers). the method type is ignored when using this method */
-  void solveIKWithConstraints(const arma::vec&);
+  void solveIKGradientDescent(const arma::vec&);
 
   /** draw the robot in openGL */
   void renderRobot() const;
@@ -83,7 +75,15 @@ public:
   inline size_t bufferSize() const;
 
 private:
-  arma::vec& getQDot(const arma::vec&, arma::vec&, arma::vec&);
+  arma::vec& computeGradL(
+      arma::vec&, /** gradL */
+      arma::vec&, /** state vector */
+      const arma::vec&, /* desired positions */
+      const arma::vec&, /* S */
+      const arma::vec&, /* lagrange multipliers */
+      const std::vector<LinkState*>&, /* all link states */
+      const size_t numConstraints
+    );
 
   arma::vec3 _rootPosition;
   TreeNode* _root;

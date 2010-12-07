@@ -395,12 +395,14 @@ static void mouseDragged(int x, int y) {
       //cout << pos << endl;
       vec3 pos = getWorldSpacePos(x, y, activeTargetZBuf);
       targets[activeTarget] = pos;
-      robot->solveIKWithConstraints(flattenVector(targets));
+      robot->solveIKGradientDescent(flattenVector(targets));
+      //robot->solveIKWithConstraints(flattenVector(targets));
       //robot->solveIK(flattenVector(targets));
     } else if (activeTarget == targets.size()) { // HACK: the root inner node is always the first node after the effectors
       vec3 pos = getWorldSpacePos(x, y, activeTargetZBuf);
       robot->setRootPosition(pos);
-      robot->solveIKWithConstraints(flattenVector(targets));
+      robot->solveIKGradientDescent(flattenVector(targets));
+      //robot->solveIKWithConstraints(flattenVector(targets));
     }
   }
 }
@@ -545,14 +547,7 @@ int main(int argc, char **argv) {
       new TranslationJoint(1.0, makeVec3(1, 0, 0))
     ),
     makeVector<TreeNode*>(1,
-      new INode(
-        makeVector<LinkState*>(1,
-          new AxisBallAndSocketJoint(1.0, makeVec3(0, 1, 0))
-        ),
-        makeVector<TreeNode*>(1,
-          new LNode()
-        )
-      )
+      new LNode()
     )
   );
 

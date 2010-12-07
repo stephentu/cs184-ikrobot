@@ -31,7 +31,7 @@ public:
   /** Degrees of freedom */
   virtual size_t dof() const = 0;
 
-  /** Compute all jacobian entries */
+  /** Compute all jacobian entries (dS/dq) for the given effector for this joint */
   virtual void computeJacobianEntries(arma::mat&, /* The jacobian */
                                       arma::vec&, /* The state matrix */ 
                                       const size_t, /* Effector ID */
@@ -39,14 +39,6 @@ public:
                                       const arma::vec3&, /* desired effector pos */
                                       const arma::vec3&, /* current effector pos */
                                       const arma::vec3& /* current vector from origin TO effector */) const = 0;
-
-  ///** For the i-th DOF, return the rotation axis given a context, desired
-  // * position, and current effector position.
-  // * DOF must be a valid DOF (indexed from zero). */
-  //virtual arma::vec3 getRotationAxis(const size_t, 
-  //                                   const Context&, 
-  //                                   const arma::vec3&,
-  //                                   const arma::vec3&) const = 0;
 
   /** what NORMALIZED direction is the link pointing in, given a context and applying
    * this link's rotations?  */
@@ -72,6 +64,22 @@ public:
 
   /** Get an orthonormal basis (u, v, n) for this frame */
   virtual void getBasis(const Context&, arma::vec3&, arma::vec3&, arma::vec3&) const = 0;
+
+                    /** Constraints */
+
+  /** Toggle a constraint, depending on implementation */
+  virtual void toggleConstraint() = 0;
+
+  /** Grand method to get constraint information out of this link state */
+  virtual void getConstraintInfo(
+      arma::vec&, /** one entry per constraint, the evaluation of C(q) */
+      arma::mat&, /** a (# constraint) x (||q||) matrix dC/dq */ 
+      const Context&, /** ctx of this link state */
+      const arma::vec&, /** a list of jointIds which are descendants of this link */
+      const arma::vec& /** a list of state vectors for each joint in the entire system */
+    ) = 0;
+
+  virtual size_t numConstraints() const = 0;
 
   /** Mark a set point for this link. subsequent calls to reset will move the
    * link back to this exact state. calling mark overrides the previous set
@@ -134,10 +142,6 @@ public:
                               const arma::vec3&,
                               const arma::vec3&,
                               const arma::vec3&) const;
-  //arma::vec3 getRotationAxis(const size_t, 
-  //                           const Context&, 
-  //                           const arma::vec3&,
-  //                           const arma::vec3&) const; 
   arma::vec3 getRotatedDirection(const Context&) const; 
   std::vector<size_t> getJointIdentifiers() const;
   size_t assignJointIndicies(const size_t);
@@ -145,6 +149,16 @@ public:
   void updateThetas(const arma::vec&, const arma::vec&);
   void setThetas(const arma::vec&, const arma::vec&);
   void getBasis(const Context&, arma::vec3&, arma::vec3&, arma::vec3&) const;
+
+  void toggleConstraint();
+  void getConstraintInfo(
+      arma::vec&,
+      arma::mat&,
+      const Context&,
+      const arma::vec&,
+      const arma::vec&
+    );
+  size_t numConstraints() const;
 
   void mark();
   void reset();
@@ -169,55 +183,6 @@ private:
   size_t jointId;
 };
 
-class EulerBallAndSocketJoint : public LinkState {
-public:
-  EulerBallAndSocketJoint(const double, const arma::vec3&);
-                  
-  size_t dof() const;
-  void computeJacobianEntries(arma::mat&,
-                              arma::vec&,
-                              const size_t,
-                              const Context&,
-                              const arma::vec3&,
-                              const arma::vec3&,
-                              const arma::vec3&) const;
-  //arma::vec3 getRotationAxis(const size_t, 
-  //                           const Context&, 
-  //                           const arma::vec3&,
-  //                           const arma::vec3&) const; 
-  arma::vec3 getRotatedDirection(const Context&) const; 
-  std::vector<size_t> getJointIdentifiers() const;
-  size_t assignJointIndicies(const size_t);
-  Context& pushContext(Context&) const;
-  void updateThetas(const arma::vec&, const arma::vec&);
-  void setThetas(const arma::vec&, const arma::vec&);
-  void getBasis(const Context&, arma::vec3&, arma::vec3&, arma::vec3&) const;
-
-  void mark();
-  void reset();
-
-  void save();
-  void restore();
-	void resetPointer();
-	void resetBuffer();
-	void advance();
-
-private:
-  arma::vec3 baselineDirection;
-
-  // Euler angles
-  double thetax;
-  double thetay;
-  double thetaz;
-
-  double oldThetax;
-  double oldThetay;
-  double oldThetaz;
-
-  std::vector<size_t> jointIds;
-
-};
-
 class AxisBallAndSocketJoint : public LinkState {
 public:
   AxisBallAndSocketJoint(const double, const arma::vec3&);
@@ -230,10 +195,6 @@ public:
                               const arma::vec3&,
                               const arma::vec3&,
                               const arma::vec3&) const;
-  //arma::vec3 getRotationAxis(const size_t, 
-  //                           const Context&, 
-  //                           const arma::vec3&,
-  //                           const arma::vec3&) const; 
   arma::vec3 getRotatedDirection(const Context&) const; 
   std::vector<size_t> getJointIdentifiers() const;
   size_t assignJointIndicies(const size_t);
@@ -241,6 +202,16 @@ public:
   void updateThetas(const arma::vec&, const arma::vec&);
   void setThetas(const arma::vec&, const arma::vec&);
   void getBasis(const Context&, arma::vec3&, arma::vec3&, arma::vec3&) const;
+
+  void toggleConstraint();
+  void getConstraintInfo(
+      arma::vec&,
+      arma::mat&,
+      const Context&,
+      const arma::vec&,
+      const arma::vec&
+    );
+  size_t numConstraints() const;
 
   void mark();
   void reset();
@@ -276,10 +247,6 @@ public:
                               const arma::vec3&,
                               const arma::vec3&,
                               const arma::vec3&) const;
-  //arma::vec3 getRotationAxis(const size_t, 
-  //                           const Context&, 
-  //                           const arma::vec3&,
-  //                           const arma::vec3&) const; 
   arma::vec3 getRotatedDirection(const Context&) const; 
   std::vector<size_t> getJointIdentifiers() const;
   size_t assignJointIndicies(const size_t);
@@ -287,6 +254,16 @@ public:
   void updateThetas(const arma::vec&, const arma::vec&);
   void setThetas(const arma::vec&, const arma::vec&);
   void getBasis(const Context&, arma::vec3&, arma::vec3&, arma::vec3&) const;
+
+  void toggleConstraint();
+  void getConstraintInfo(
+      arma::vec&,
+      arma::mat&,
+      const Context&,
+      const arma::vec&,
+      const arma::vec&
+    );
+  size_t numConstraints() const;
 
   void mark();
   void reset();
