@@ -207,11 +207,11 @@ void INode::renderTree(Context& ctx) const {
     vec3 endpoint = _states[i]->getEndpoint(ctx);
 
     // draw the link
-    glBegin(GL_LINES);
-      glColor3d(1.0, 1.0, 1.0);
-      glVertex3d(startpoint[0], startpoint[1], startpoint[2]);
-      glVertex3d(endpoint[0], endpoint[1], endpoint[2]);
-    glEnd();
+    //glBegin(GL_LINES);
+    //  glColor3d(1.0, 1.0, 1.0);
+    //  glVertex3d(startpoint[0], startpoint[1], startpoint[2]);
+    //  glVertex3d(endpoint[0], endpoint[1], endpoint[2]);
+    //glEnd();
 
     // calculate orthonormal basis for cylinder on joint
     vec3 u, v, n;

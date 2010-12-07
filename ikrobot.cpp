@@ -74,6 +74,8 @@ static size_t playbackFps = 20; // 20 frames per second
 
 static void* textFont = GLUT_BITMAP_HELVETICA_18;
 
+static GLdouble rotOnlyMatrix[16];
+
 enum MenuOption {
   RESET_BUFFER,
   TOGGLE_ANIMATION,
@@ -136,6 +138,10 @@ static void initScene() {
   // set up model matrix
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
+
+  // store ID matrix into rotOnlyMatrix
+  glGetDoublev(GL_MODELVIEW_MATRIX, rotOnlyMatrix);
+
   glTranslatef(0.0f, 0.0f, -15.0f); // move everything into screen 15 deep
 }
 
@@ -172,10 +178,63 @@ static inline vec3 getWorldSpacePos(int x, int y, double zbuf) {
   return makeVec3(posX, posY, posZ);
 }
 
-static inline void writeString(void *font, const char *str, float x, float y) {
-  glWindowPos2f(x, y);
+static inline void writeString(void *font, const char *str, float x, float y, float z = 0.0) {
+  glWindowPos3f(x, y, z);
   const char *p = &str[0];
   while (*p) glutBitmapCharacter(font, *p++);
+}
+
+static void drawAxis() {
+  glViewport(width - 100, 0, 100, 100);
+
+  glMatrixMode(GL_PROJECTION);
+  glPushMatrix();
+    glLoadIdentity();
+    //gluLookAt(0, 0, 2, 0, 0, 0, 0, 1, 0);
+    //gluOrtho2D(-2, 2, -2, 2);
+    gluPerspective(45.0f, 1.0f, 1.0f, 100.0f);
+  glPopMatrix();
+
+  glMatrixMode(GL_MODELVIEW);
+  glPushMatrix();
+    glLoadIdentity();
+    glTranslated(0, 0, -3);
+    glMultMatrixd(rotOnlyMatrix);
+    glBegin(GL_LINES);
+      // x
+      glColor3f(1, 0, 0);
+      glVertex3d(1, 0, 0);
+      glVertex3d(0, 0, 0);
+
+      // y
+      glColor3f(0, 1, 0);
+      glVertex3d(0, 1, 0);
+      glVertex3d(0, 0, 0);
+
+      // z
+      glColor3f(0, 0, 1);
+      glVertex3d(0, 0, 1);
+      glVertex3d(0, 0, 0);
+    glEnd();
+
+    //GLint viewport[4];
+    //GLdouble modelview[16];
+    //GLdouble projection[16];
+
+    //glGetDoublev(GL_MODELVIEW_MATRIX, modelview);
+    //glGetDoublev(GL_PROJECTION_MATRIX, projection);
+    //glGetIntegerv(GL_VIEWPORT, viewport);
+
+    //double winx_x, winx_y, winx_z;
+    //gluProject(1, 0, 0, modelview, projection, viewport, &winx_x, &winx_y, &winx_z);
+    //winx_y = viewport[3] - winx_y; 
+    //writeString(GLUT_BITMAP_HELVETICA_12, "x", (int) winx_x, (int) winx_y); 
+
+  glPopMatrix();
+
+
+
+  setViewport();
 }
 
 static void display() {
@@ -247,6 +306,8 @@ static void display() {
     }
   }
 
+  drawAxis();
+
   if (displayMode == GL_RENDER)
     glutSwapBuffers();
 }
@@ -281,18 +342,42 @@ static void specialKeyboardHandler(int key, int x, int y) {
       case GLUT_KEY_LEFT: // -y axis rot
         glMatrixMode(GL_MODELVIEW);
         glRotated(-10.0, 0.0, 1.0, 0.0);
+
+        glPushMatrix();
+          glLoadMatrixd(rotOnlyMatrix);
+          glRotated(-10.0, 0.0, 1.0, 0.0);
+          glGetDoublev(GL_MODELVIEW_MATRIX, rotOnlyMatrix);
+        glPopMatrix();
         break;
       case GLUT_KEY_RIGHT: // +y axis rot
         glMatrixMode(GL_MODELVIEW);
         glRotated(10.0, 0.0, 1.0, 0.0);
+
+        glPushMatrix();
+          glLoadMatrixd(rotOnlyMatrix);
+          glRotated(10.0, 0.0, 1.0, 0.0);
+          glGetDoublev(GL_MODELVIEW_MATRIX, rotOnlyMatrix);
+        glPopMatrix();
         break;
       case GLUT_KEY_UP: // -x axis rot
         glMatrixMode(GL_MODELVIEW);
         glRotated(-10.0, 1.0, 0.0, 0.0);
+
+        glPushMatrix();
+          glLoadMatrixd(rotOnlyMatrix);
+          glRotated(-10.0, 1.0, 0.0, 0.0);
+          glGetDoublev(GL_MODELVIEW_MATRIX, rotOnlyMatrix);
+        glPopMatrix();
         break;
       case GLUT_KEY_DOWN: // +x axis rot
         glMatrixMode(GL_MODELVIEW);
         glRotated(10.0, 1.0, 0.0, 0.0);
+
+        glPushMatrix();
+          glLoadMatrixd(rotOnlyMatrix);
+          glRotated(10.0, 1.0, 0.0, 0.0);
+          glGetDoublev(GL_MODELVIEW_MATRIX, rotOnlyMatrix);
+        glPopMatrix();
         break;
     }
   }
@@ -540,19 +625,28 @@ int main(int argc, char **argv) {
   //  )
   //);
 
+  //TreeNode *root = new INode(
+  //  makeVector<LinkState*>(1,
+  //    new TranslationJoint(1.0, makeVec3(1, 0, 0))
+  //  ),
+  //  makeVector<TreeNode*>(1,
+  //    new INode(
+  //      makeVector<LinkState*>(1,
+  //        new AxisBallAndSocketJoint(1.0, makeVec3(0, 1, 0))
+  //      ),
+  //      makeVector<TreeNode*>(1,
+  //        new LNode()
+  //      )
+  //    )
+  //  )
+  //);
+
   TreeNode *root = new INode(
     makeVector<LinkState*>(1,
-      new TranslationJoint(1.0, makeVec3(1, 0, 0))
+      new RotationJoint(1.0, zhat, makeVec3(1, 0, 0))
     ),
     makeVector<TreeNode*>(1,
-      new INode(
-        makeVector<LinkState*>(1,
-          new AxisBallAndSocketJoint(1.0, makeVec3(0, 1, 0))
-        ),
-        makeVector<TreeNode*>(1,
-          new LNode()
-        )
-      )
+      new LNode()
     )
   );
 
