@@ -142,10 +142,16 @@ mat& LinkedTreeRobot::computeConstraintJacobian(const vec& desired,
       assert(jointIds.size() == linkState->dof());
       ctx.popContext();
       vec3 direction = currentPos - ctx.getCurrentOrigin();
+      vec3 normDir = direction;
+      normalize_vec3(normDir);
       for (size_t jointIdx = 0; jointIdx < linkState->dof(); jointIdx++) {
         size_t jointId = jointIds[jointIdx];
         vec3 rotAxis = axes.rows(3 * jointId, 3 * jointId + 2);
-        vec3 dPdq = cross(rotAxis, direction);
+        vec3 dPdq; 
+        if (vec3_equals(rotAxis, normDir)) // HACK: this is how we do constraints for translation joints
+          dPdq = rotAxis;
+        else
+          dPdq = cross(rotAxis, direction);
         vec3 jacEntry = dCdP % dPdq;
         m.submat(3 * idx, jointId, 3 * idx + 2, jointId) = jacEntry; 
       }

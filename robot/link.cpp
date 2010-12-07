@@ -342,6 +342,7 @@ void TranslationJoint::computeJacobianEntries(mat& jacobian,
                                               const vec3& desired,
                                               const vec3& effector,
                                               const vec3& direction) const {
+  state.rows(3 * jointId, 3 * jointId + 2) = _fixedAxis;
   jacobian(3 * effectorId,     jointId) = _fixedAxis[0];
   jacobian(3 * effectorId + 1, jointId) = _fixedAxis[1];
   jacobian(3 * effectorId + 2, jointId) = _fixedAxis[2];
