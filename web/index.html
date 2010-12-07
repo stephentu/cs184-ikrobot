@@ -1,0 +1,195 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!--
+Design by Free CSS Templates
+http://www.freecsstemplates.org
+Released for free under a Creative Commons Attribution 2.5 License
+
+Name       : Pollinating  
+Description: A two-column, fixed-width design with dark color scheme.
+Version    : 1.0
+Released   : 20101114
+
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta name="keywords" content="" />
+<meta name="description" content="" />
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<title>CS184 Final Project - Inverse Kinematics Solver</title>
+<link href="style.css" rel="stylesheet" type="text/css" media="screen" />
+</head>
+<body>
+<div id="wrapper">
+	<!-- end #menu -->
+	<div id="header">
+		<div id="logo">
+			<h1>CS184 Final Project</h1>
+		</div>
+	</div>
+	<!-- end #header -->
+	<div id="page">
+		<div id="page-bgtop">
+			<div id="page-bgbtm">
+				<div id="content">
+					<div class="post">
+						<h2 class="title"><a href="#">Feature Summary</a></h2>
+						<div class="entry">
+              <p>The goals of this project were to implement <strong>different
+              algorithms</strong> to solve inverse kinematics problems, provide a
+              variety of <strong>different joints</strong> to choose from, and explore the
+              space of <strong>constraint satisfaction</strong> within inverse kinematics.</p>
+              <p>The technical details for what I am about to explain below
+              are outlined in this <a href="#">tech report</a>.</p>
+              <p>The methods which I implemented were:</p>
+              <ul>
+                <li>Pseudoinverse</li>
+                <li>Damped Least Squares</li>
+                <li>Generalized Jacobian Transpose</li>
+                <li>Gradient Descent (<i>Did not achieve desirable results</i>)</li>
+              </ul>
+              <p>The robot was a <strong>linked robot</strong>. An assumption was made that
+              the links of the robot would form a tree (<i>a node was not allowed
+              to have more than one parent</i>). This assumption was used to
+              simplify the calculation of the Jacobian. The following joint
+              types were implemented:</p>
+              <ul>
+                <li>Fixed Axis</li>
+                <li>Ball and Socket</li>
+                <li>Telescoping (translational)</li>
+              </ul>
+              <p>I also explored playing around with constraints. The
+              generalized jacobian transpose method was implemented in order
+              to handle hard constraints (<strong>C(x) = 0</strong>). I
+              implemented positional constraints, which can be toggled by
+              clicking on a joint (examples below). I also attempted to
+              explore inequality constraints (<strong>C(x) > 0</strong>),
+              which required the formulation of the problem as a non-linear
+              optimization problem. My first attempt at solving this was to
+              use gradient descent, but ultimately the method was too
+              simplistic and solutions did not converge when 
+              constraints were "added" (via lagrange multipliers). I did not have enough
+              time to try more advanced methods such as BFGS or
+              Levenberg-Marquardt.</p>
+              <p>Finally, a key-frame animation system was implemented. Every
+              time the <strong>a</strong> key is pressed, a snapshot of the
+              robot's current configuration is stashed away. The user can
+              replay this animation at any time and can even adjust the
+              frame rate at which this animation plays back.</p>
+              <p>In the examples below, only the generalized jacobian
+              transpose method is shown, because it is capable of handling
+              constraints. As mentioned above, I was unable to get gradient
+              descent to converge nicely when using lagrange multipliers
+              (I was able to get it to play nicely without constraints, but
+              that was not interesting since I already had several other
+              methods which worked fine without constraints).</p>
+						</div>
+            <p class="line"/>
+					</div>
+          <div class="post">
+						<h2 class="title"><a href="#">Videos</a></h2>
+						<div class="entry">
+              <p>I will first show videos for very simple robots just to
+              demonstrate a particular feature. I will then show more complicated
+              robots in animation to show the system in its entirety.</p>
+
+              <p id="fixed-axis">
+                <strong>Fixed Axis Rotation Joint</strong><br/>
+                Here the joint is fixed to rotate only about the z axis.
+              </p>
+              <object width="480" height="385"><param name="movie" value="http://www.youtube.com/v/ZH7WdCDf0Wg?fs=1&amp;hl=en_US"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="http://www.youtube.com/v/ZH7WdCDf0Wg?fs=1&amp;hl=en_US" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="480" height="385"></embed></object><br/><br/>
+
+              <p id="ball-and-socket">
+                <strong>Ball and Socket Rotation Joint</strong><br/>
+                Here the joint is free to rotate in any direction.
+              </p>
+              <object width="480" height="385"><param name="movie" value="http://www.youtube.com/v/6GznIC6J_AM?fs=1&amp;hl=en_US"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="http://www.youtube.com/v/6GznIC6J_AM?fs=1&amp;hl=en_US" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="480" height="385"></embed></object><br/><br/>
+
+              <p id="telescoping">
+                <strong>Telescoping Translational Joint</strong><br/>
+                Here the joint is only allowed to translate in the x
+                direction. 
+              </p>
+              <object width="480" height="385"><param name="movie" value="http://www.youtube.com/v/4P9kv1P2YkE?fs=1&amp;hl=en_US"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="http://www.youtube.com/v/4P9kv1P2YkE?fs=1&amp;hl=en_US" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="480" height="385"></embed></object><br/><br/>
+
+              <p id="position-constraints">
+                <strong>Positional Constraints</strong><br/>
+                Here I demonstrate a fixed position constraint. When a joint
+                is clicked, its color changes to indicate that it is no longer
+                free to move (its orientation can still change however).
+              </p>
+              <object width="480" height="385"><param name="movie" value="http://www.youtube.com/v/Sm_W8vaPvLs?fs=1&amp;hl=en_US"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="http://www.youtube.com/v/Sm_W8vaPvLs?fs=1&amp;hl=en_US" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="480" height="385"></embed></object><br/><br/>
+
+              <p id="keyframe-animation">
+                <strong>Simple Keyframe Animation</strong><br/>
+                Here I show the keyframe animation interface, by slowly
+                animating a multi-linked robot.   
+              </p>
+              <object width="480" height="385"><param name="movie" value="http://www.youtube.com/v/tEAbwOHewbI?fs=1&amp;hl=en_US"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="http://www.youtube.com/v/tEAbwOHewbI?fs=1&amp;hl=en_US" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="480" height="385"></embed></object><br/><br/>
+
+              <p>
+                <strong>Spider Keyframe Animation</strong><br/>
+                Here is a simple four-legged spider being animated.
+              </p>
+              <object width="480" height="385"><param name="movie" value="http://www.youtube.com/v/9ArXymc5-W4?fs=1&amp;hl=en_US"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="http://www.youtube.com/v/9ArXymc5-W4?fs=1&amp;hl=en_US" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="480" height="385"></embed></object><br/><br/>
+
+              <p>
+                <strong>Humanoid Keyframe Animation</strong><br/>
+                Here is a simple humanoid being animated.
+              </p>
+              <object width="480" height="385"><param name="movie" value="http://www.youtube.com/v/FNRAd6b_qS0?fs=1&amp;hl=en_US"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="http://www.youtube.com/v/FNRAd6b_qS0?fs=1&amp;hl=en_US" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="480" height="385"></embed></object><br/><br/>
+
+              <p>
+                <strong>Long Robot Arm</strong><br/>
+                Here is a long robot arm being manipulated.
+              </p>
+              <object width="480" height="385"><param name="movie" value="http://www.youtube.com/v/TP8OUlm_53U?fs=1&amp;hl=en_US"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="http://www.youtube.com/v/TP8OUlm_53U?fs=1&amp;hl=en_US" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="480" height="385"></embed></object>
+
+            </div>
+          </div>
+					<div style="clear: both;">&nbsp;</div>
+				</div>
+				<!-- end #content -->
+				<div id="sidebar">
+					<ul>
+						<li>
+							<h2>description</h2>
+							<p>An inverse kinematics solver with support for key-frame
+              animation.</p>
+						</li>
+						<li>
+							<h2>author</h2>
+							<p><a href="http://www.cs.berkeley.edu/~sltu">Stephen Tu</a> (<a href="/~cs184-cv">cs184-cv</a>)</p>
+						</li>
+						<li>
+							<h2>features</h2>
+							<ul>
+								<li><a href="#fixed-axis">Fixed Axis Joints</a></li>
+								<li><a href="#ball-and-socket">Ball and Socket Joints</a></li>
+								<li><a href="#telescoping">Telescoping Joints</a></li>
+								<li><a href="#position-constraints">Positional Constraints</a></li>
+								<li><a href="#keyframe-animation">Keyframe Animation</a></li>
+							</ul>
+						</li>
+						<li>
+							<h2>source</h2>
+							<ul>
+								<li><a href="http://github.com/stephentu/cs184-ikrobot">Github</a></li>
+							</ul>
+						</li>
+					</ul>
+				</div>
+				<!-- end #sidebar -->
+				<div style="clear: both;">&nbsp;</div>
+			</div>
+		</div>
+	</div>
+	<!-- end #page -->
+</div>
+<div id="footer-wrapper">
+	<div id="footer">
+		<p>Design by <a href="http://www.freecsstemplates.org/"> CSS Templates</a>.</p>
+	</div>
+	<!-- end #footer -->
+</div>
+</body>
+</html>

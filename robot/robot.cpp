@@ -209,7 +209,7 @@ static inline vec clamp(const vec& input, const double maxMag) {
   return v;
 }
 
-static const double lambda = 1.5;
+static const double lambda = 1.6;
 static const double lambda_squared = lambda * lambda;
 
 vec LinkedTreeRobot::computeDeltaThetas(const vec& desiredPositions, vec& axes) const {

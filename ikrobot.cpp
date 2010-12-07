@@ -56,8 +56,8 @@ static int msleep(unsigned long milisec) {
 static LinkedTreeRobot *robot;
 static vector<vec3> targets;
 
-static int width  = 600;
-static int height = 600;
+static int width  = 640;
+static int height = 480;
 
 static int displayMode = GL_RENDER;
 
@@ -66,7 +66,7 @@ static unsigned int PICK_BUF[PICK_BUFFER_SIZE];
 
 static int mouseX, mouseY; // mouseX and mouseY **AFTER** glut adjustment in y
 
-static int solnType = 0;
+static int solnType = 1;
 
 static bool isPlayback = false; // if false, in rec mode. if true, in playback mode
 
@@ -192,7 +192,7 @@ static void drawAxis() {
     glLoadIdentity();
     //gluLookAt(0, 0, 2, 0, 0, 0, 0, 1, 0);
     //gluOrtho2D(-2, 2, -2, 2);
-    gluPerspective(45.0f, 1.0f, 1.0f, 100.0f);
+    gluPerspective(45.0f, (GLfloat)width/(GLfloat)height, 1.0f, 100.0f);
   glPopMatrix();
 
   glMatrixMode(GL_MODELVIEW);
@@ -486,6 +486,7 @@ static void mouseDragged(int x, int y) {
       vec3 pos = getWorldSpacePos(x, y, activeTargetZBuf);
       robot->setRootPosition(pos);
       robot->solveIKWithConstraints(flattenVector(targets));
+      //robot->solveIK(flattenVector(targets));
     }
   }
 }
@@ -553,7 +554,10 @@ int main(int argc, char **argv) {
   //          makeVector<LinkState*>(1, new LinkState(1.0, makeVec3(0, -1, 0), makeVec3(0, 0, 1))),
   //          makeVector<TreeNode*>(1, new LNode()))))));
 
+  vec3 xhat = makeVec3(1, 0, 0);
+  vec3 yhat = makeVec3(0, 1, 0);
   vec3 zhat = makeVec3(0, 0, 1);
+
   
   // spider
   //TreeNode *root = new INode(
@@ -626,13 +630,104 @@ int main(int argc, char **argv) {
   //);
 
   //TreeNode *root = new INode(
-  //  makeVector<LinkState*>(1,
-  //    new TranslationJoint(1.0, makeVec3(1, 0, 0))
+  //  makeVector<LinkState*>(2,
+  //    new TranslationJoint(1.0, makeVec3(1, 0, 0)),
+  //    new AxisBallAndSocketJoint(1.0, makeVec3(-1, 0, 0))
   //  ),
-  //  makeVector<TreeNode*>(1,
+  //  makeVector<TreeNode*>(2,
   //    new INode(
   //      makeVector<LinkState*>(1,
   //        new AxisBallAndSocketJoint(1.0, makeVec3(0, 1, 0))
+  //      ),
+  //      makeVector<TreeNode*>(1,
+  //        new LNode()
+  //      )
+  //    ),
+  //    new INode(
+  //      makeVector<LinkState*>(1,
+  //        new RotationJoint(1.0, zhat, makeVec3(0, -1, 0))
+  //      ),
+  //      makeVector<TreeNode*>(1,
+  //        new LNode()
+  //      )
+  //    )
+  //  )
+  //);
+  
+  //TreeNode *root = new INode(
+  //  makeVector<LinkState*>(3,
+  //    new TranslationJoint(1.0, makeVec3(1, 0, 0)),
+  //    new AxisBallAndSocketJoint(1.0, makeVec3(-1, 0, 0)),
+  //    new RotationJoint(0.5, zhat, makeVec3(0, 1, 0))
+  //  ),
+  //  makeVector<TreeNode*>(3,
+  //    new INode(
+  //      makeVector<LinkState*>(1,
+  //        new AxisBallAndSocketJoint(1.0, makeVec3(0, 1, 0))
+  //      ),
+  //      makeVector<TreeNode*>(1,
+  //        new LNode()
+  //      )
+  //    ),
+  //    new INode(
+  //      makeVector<LinkState*>(1,
+  //        new RotationJoint(1.0, zhat, makeVec3(0, -1, 0))
+  //      ),
+  //      makeVector<TreeNode*>(1,
+  //        new LNode()
+  //      )
+  //    ),
+  //    new INode(
+  //      makeVector<LinkState*>(2,
+  //        new RotationJoint(0.7, yhat, makeVec3(-1, 0, 0)),
+  //        new AxisBallAndSocketJoint(0.7, makeVec3(0, 1, 0))
+  //      ),
+  //      makeVector<TreeNode*>(2,
+  //        new LNode(),
+  //        new LNode()
+  //      )
+  //    )
+  //  )
+  //);
+  //
+
+  //const double sqrt_2_2 = sqrt(2.0) / 2.0;
+  //
+  //TreeNode *root = new INode(
+  //  makeVector<LinkState*>(4, 
+  //    new AxisBallAndSocketJoint(1, makeVec3(sqrt_2_2, 0, -sqrt_2_2)), 
+  //    new AxisBallAndSocketJoint(1, makeVec3(-sqrt_2_2, 0, -sqrt_2_2)),
+  //    new AxisBallAndSocketJoint(1, makeVec3(-sqrt_2_2, 0, sqrt_2_2)), 
+  //    new AxisBallAndSocketJoint(1, makeVec3(sqrt_2_2, 0, sqrt_2_2))
+  //  ),
+  //  makeVector<TreeNode*>(4, 
+  //    new INode( 
+  //      makeVector<LinkState*>(1,
+  //        new RotationJoint(1, makeVec3(sqrt_2_2, 0, -sqrt_2_2), -yhat)
+  //      ),
+  //      makeVector<TreeNode*>(1,
+  //        new LNode()
+  //      )
+  //    ),
+  //    new INode( 
+  //      makeVector<LinkState*>(1,
+  //        new RotationJoint(1, makeVec3(-sqrt_2_2, 0, sqrt_2_2), -yhat)
+  //      ),
+  //      makeVector<TreeNode*>(1,
+  //        new LNode()
+  //      )
+  //    ),
+  //    new INode( 
+  //      makeVector<LinkState*>(1,
+  //        new RotationJoint(1, makeVec3(sqrt_2_2, 0, sqrt_2_2), -yhat)
+  //      ),
+  //      makeVector<TreeNode*>(1,
+  //        new LNode()
+  //      )
+  //    ),
+  //    new INode( 
+  //      makeVector<LinkState*>(1,
+  //        new RotationJoint(1, makeVec3(sqrt_2_2, 0, -sqrt_2_2), -yhat)
   //      ),
   //      makeVector<TreeNode*>(1,
   //        new LNode()
@@ -641,14 +736,55 @@ int main(int argc, char **argv) {
   //  )
   //);
 
+  //TreeNode *root = new INode(
+  //  makeVector<LinkState*>(1,
+  //    //new RotationJoint(1.0, zhat, makeVec3(1, 0, 0))
+  //    //new AxisBallAndSocketJoint(1.0, makeVec3(0, 1, 0))
+  //      new TranslationJoint(1.0, makeVec3(1, 0, 0))
+  //  ),
+  //  makeVector<TreeNode*>(1,
+  //    new LNode()
+  //  )
+  //);
+  
   TreeNode *root = new INode(
-    makeVector<LinkState*>(1,
-      new RotationJoint(1.0, zhat, makeVec3(1, 0, 0))
-    ),
+    makeVector<LinkState*>(1, new AxisBallAndSocketJoint(1.0, makeVec3(1, 0, 0))),
     makeVector<TreeNode*>(1,
-      new LNode()
-    )
-  );
+      new INode(
+        makeVector<LinkState*>(1, new AxisBallAndSocketJoint(1.0, makeVec3(1, 0, 0))),
+        makeVector<TreeNode*>(1,
+          new INode(
+            makeVector<LinkState*>(1, new AxisBallAndSocketJoint(1.0, makeVec3(1, 0, 0))),
+            makeVector<TreeNode*>(1,
+              new INode(
+                makeVector<LinkState*>(1, new AxisBallAndSocketJoint(1.0, makeVec3(1, 0, 0))),
+                makeVector<TreeNode*>(1,
+                  new INode(
+                    makeVector<LinkState*>(1, new AxisBallAndSocketJoint(1.0, makeVec3(1, 0, 0))),
+                    makeVector<TreeNode*>(1,
+                      new INode(
+                        makeVector<LinkState*>(1, new AxisBallAndSocketJoint(1.0, makeVec3(1, 0, 0))),
+                        makeVector<TreeNode*>(1,
+                          new INode(
+                            makeVector<LinkState*>(1, new AxisBallAndSocketJoint(1.0, makeVec3(1, 0, 0))),
+                            makeVector<TreeNode*>(1,
+                              new INode(
+                                makeVector<LinkState*>(1, new AxisBallAndSocketJoint(1.0, makeVec3(1, 0, 0))),
+                                makeVector<TreeNode*>(1,
+                                  new INode(
+                                    makeVector<LinkState*>(1, new AxisBallAndSocketJoint(1.0, makeVec3(1, 0, 0))),
+                                    makeVector<TreeNode*>(1,
+                                      new INode(
+                                        makeVector<LinkState*>(1, new AxisBallAndSocketJoint(1.0, makeVec3(1, 0, 0))),
+                                        makeVector<TreeNode*>(1,
+                                          new INode(
+                                            makeVector<LinkState*>(1, new AxisBallAndSocketJoint(1.0, makeVec3(1, 0, 0))),
+                                            makeVector<TreeNode*>(1,
+                                              new INode(
+                                                makeVector<LinkState*>(1, new AxisBallAndSocketJoint(1.0, makeVec3(1, 0, 0))),
+                                                makeVector<TreeNode*>(1,
+                                                  new LNode))))))))))))))))))))))));
+
 
   robot = new LinkedTreeRobot(makeVec3(0, 0, 0), root);
 
@@ -658,6 +794,8 @@ int main(int argc, char **argv) {
   robot->getEffectorPositions(targets);
 
   cout << "Got effector positions" << endl;
+
+  robot->setMethod((SolnType)solnType);
 
   // -----------------
 
