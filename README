@@ -1,5 +1,9 @@
 This is a simple inverse kinematics solver for a linked robot,
 for my CS184 final project.
 
-Webpage: http://inst.eecs.berkeley.edu/~cs184-cv/finalproj 
-Tech Report: http://inst.eecs.berkeley.edu/~cs184-cv/finalproj/ik-tech-report.pdf
+Webpage: 
+  http://inst.eecs.berkeley.edu/~cs184-cv/finalproj, or in the web folder
+Final Report: 
+  http://inst.eecs.berkeley.edu/~cs184-cv/finalproj/final-report.pdf, or in the reports folder
+Tech Report (part of final report): 
+  http://inst.eecs.berkeley.edu/~cs184-cv/finalproj/ik-tech-report.pdf, or in the reports folder
